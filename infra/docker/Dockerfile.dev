@@ -1,0 +1,39 @@
+FROM debian:bookworm-slim
+
+ARG GO_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV RUSTUP_HOME=/opt/rustup
+ENV CARGO_HOME=/opt/cargo
+ENV PATH=/opt/cargo/bin:/usr/local/go/bin:/root/go/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+      bash \
+      ca-certificates \
+      curl \
+      git \
+      build-essential \
+      pkg-config \
+      libssl-dev \
+      postgresql-client \
+      redis-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/rustup /opt/cargo && chmod -R 777 /opt/rustup /opt/cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+RUN cargo install just
+
+RUN curl -fsSL "https://go.dev/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz && \
+    rm -rf /usr/local/go && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm -f /tmp/go.tar.gz
+
+WORKDIR /workspace
+
+RUN git config --system --add safe.directory /workspace
+
+CMD ["bash", "-lc", "exec sleep infinity"]

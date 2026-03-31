@@ -13,7 +13,7 @@ fmt:
     go fmt ./...
 
 fmt-check:
-    test -z "$$(gofmt -l $$(find . -type f -name '*.go' -not -path './vendor/*'))"
+    test -z "$(gofmt -l $(find . -type f -name '*.go' -not -path './vendor/*'))"
 
 lint:
     go vet ./...

@@ -3,11 +3,6 @@ services:
     image: ghcr.io/yifen9/gamidoc-backend-dev
     env_file:
       - ../.env.dev
-    build:
-      context: ..
-      dockerfile: infra/docker/Dockerfile.dev
-      args:
-        GO_VERSION: ${GO_VERSION}
     container_name: gamidoc-backend-dev-main
     working_dir: /workspace
     volumes:
@@ -22,16 +17,16 @@ services:
 
   gamidoc-backend-dev-pg:
     image: postgres:18-bookworm
+    env_file:
+      - ../.env.dev
     container_name: gamidoc-backend-dev-pg
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - gamidoc-backend-dev-pg-data:/var/lib/postgresql/data
+      - gamidoc-backend-dev-pg-data:/var/lib/postgresql
 
   gamidoc-backend-dev-redis:
     image: redis:8-bookworm
+    env_file:
+      - ../.env.dev
     container_name: gamidoc-backend-dev-redis
     volumes:
       - gamidoc-backend-dev-redis-data:/data

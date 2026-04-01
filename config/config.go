@@ -20,7 +20,7 @@ type Config struct {
 }
 
 func Load() Config {
-	cfg := Config{
+	return Config{
 		AppEnv:           getEnv("APP_ENV", "development"),
 		HTTPAddr:         getEnv("HTTP_ADDR", ":8080"),
 		PostgresHost:     getEnv("POSTGRES_HOST", "localhost"),
@@ -31,7 +31,6 @@ func Load() Config {
 		RedisHost:        getEnv("REDIS_HOST", "localhost"),
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
 	}
-	return cfg
 }
 
 func (c Config) PostgresDSN() string {
@@ -42,6 +41,17 @@ func (c Config) PostgresDSN() string {
 		c.PostgresDB,
 		c.PostgresUser,
 		c.PostgresPassword,
+	)
+}
+
+func (c Config) PostgresURL() string {
+	return fmt.Sprintf(
+		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
+		c.PostgresUser,
+		c.PostgresPassword,
+		c.PostgresHost,
+		c.PostgresPort,
+		c.PostgresDB,
 	)
 }
 

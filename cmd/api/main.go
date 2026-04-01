@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/yifen9/gamidoc-backend/config"
@@ -13,17 +12,18 @@ func main() {
 
 	application, err := app.New(cfg)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	defer func() {
 		if err := application.Close(); err != nil {
-			log.Print(err)
+			application.Logger().Error("app_close_failed", "error", err.Error())
 		}
 	}()
 
-	log.Printf("starting server on %s", cfg.HTTPAddr)
+	application.Logger().Info("server_starting", "http_addr", cfg.HTTPAddr, "app_env", cfg.AppEnv)
 
 	if err := http.ListenAndServe(cfg.HTTPAddr, application.Router()); err != nil {
-		log.Fatal(err)
+		application.Logger().Error("server_stopped", "error", err.Error())
+		panic(err)
 	}
 }

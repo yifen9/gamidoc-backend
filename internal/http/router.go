@@ -3,10 +3,13 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
+	"github.com/yifen9/gamidoc-backend/internal/http/response"
 )
 
 type postgresReadyChecker interface {
@@ -18,6 +21,7 @@ type redisReadyChecker interface {
 }
 
 type Dependencies struct {
+	Logger   *slog.Logger
 	Postgres postgresReadyChecker
 	Redis    redisReadyChecker
 }
@@ -32,8 +36,16 @@ type readyResponse struct {
 	Redis    string `json:"redis"`
 }
 
+type pingResponse struct {
+	Message string `json:"message"`
+}
+
 func NewRouter(deps Dependencies) http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(appmiddleware.RequestID)
+	r.Use(appmiddleware.Recovery(deps.Logger))
+	r.Use(appmiddleware.Logging(deps.Logger))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, healthResponse{
@@ -67,6 +79,24 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 
 		writeJSON(w, http.StatusOK, resp)
+	})
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, pingResponse{
+				Message: "pong",
+			})
+		})
+
+		r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
+			panic("panic route triggered")
+		})
+
+		r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
+			response.WriteError(w, http.StatusBadRequest, "BAD_REQUEST", "Bad request", map[string]any{
+				"path": r.URL.Path,
+			})
+		})
 	})
 
 	return r

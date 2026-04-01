@@ -30,6 +30,14 @@ run:
 build:
     go build ./cmd/api
 
+db-migrate:
+    set -a
+    source .env.dev
+    set +a
+    for file in migrations/*.sql; do \
+      psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable" -v ON_ERROR_STOP=1 -f "$file"; \
+    done
+
 ci:
     just mod-tidy && \
     just fmt-check && \

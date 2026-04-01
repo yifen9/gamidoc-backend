@@ -1,9 +1,9 @@
 package app
 
 import (
-	"context"
+	"log/slog"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/yifen9/gamidoc-backend/config"
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
@@ -13,12 +13,15 @@ import (
 
 type App struct {
 	config config.Config
+	logger *slog.Logger
 	router http.Handler
 	pg     *postgres.DB
 	redis  *rediscache.Client
 }
 
 func New(cfg config.Config) (*App, error) {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	pg, err := postgres.New(cfg.PostgresDSN())
 	if err != nil {
 		return nil, err
@@ -28,11 +31,13 @@ func New(cfg config.Config) (*App, error) {
 
 	application := &App{
 		config: cfg,
+		logger: logger,
 		pg:     pg,
 		redis:  redisClient,
 	}
 
 	application.router = apphttp.NewRouter(apphttp.Dependencies{
+		Logger:   application.logger,
 		Postgres: application.pg,
 		Redis:    application.redis,
 	})
@@ -44,13 +49,11 @@ func (a *App) Router() http.Handler {
 	return a.router
 }
 
+func (a *App) Logger() *slog.Logger {
+	return a.logger
+}
+
 func (a *App) Close() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_ = a.pg.Ping(ctx)
-	_ = a.redis.Ping(ctx)
-
 	if err := a.pg.Close(); err != nil {
 		return err
 	}

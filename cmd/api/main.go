@@ -10,7 +10,16 @@ import (
 
 func main() {
 	cfg := config.Load()
-	application := app.New(cfg)
+
+	application, err := app.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := application.Close(); err != nil {
+			log.Print(err)
+		}
+	}()
 
 	log.Printf("starting server on %s", cfg.HTTPAddr)
 

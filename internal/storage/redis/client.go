@@ -25,6 +25,10 @@ func (c *Client) Ready(ctx context.Context) error {
 	return c.redis.Set(ctx, "gamidoc:ready", "ok", 0).Err()
 }
 
+func (c *Client) Raw() *goredis.Client {
+	return c.redis
+}
+
 func (c *Client) Close() error {
 	return c.redis.Close()
 }

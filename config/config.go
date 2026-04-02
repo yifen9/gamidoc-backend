@@ -21,6 +21,8 @@ type Config struct {
 
 	JWTSecret    string
 	JWTExpiresIn time.Duration
+
+	SessionTTL time.Duration
 }
 
 func Load() Config {
@@ -28,6 +30,12 @@ func Load() Config {
 	parsedExpiresIn, err := time.ParseDuration(expiresIn)
 	if err != nil {
 		parsedExpiresIn = 24 * time.Hour
+	}
+
+	sessionTTL := getEnv("SESSION_TTL", "48h")
+	parsedSessionTTL, err := time.ParseDuration(sessionTTL)
+	if err != nil {
+		parsedSessionTTL = 48 * time.Hour
 	}
 
 	return Config{
@@ -42,6 +50,7 @@ func Load() Config {
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
 		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
 		JWTExpiresIn:     parsedExpiresIn,
+		SessionTTL:       parsedSessionTTL,
 	}
 }
 

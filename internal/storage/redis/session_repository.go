@@ -1,0 +1,60 @@
+package redis
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"time"
+
+	goredis "github.com/redis/go-redis/v9"
+	"github.com/yifen9/gamidoc-backend/internal/session"
+)
+
+type SessionRepository struct {
+	client *Client
+	ttl    time.Duration
+}
+
+func NewSessionRepository(client *Client, ttl time.Duration) *SessionRepository {
+	return &SessionRepository{
+		client: client,
+		ttl:    ttl,
+	}
+}
+
+func (r *SessionRepository) Create(ctx context.Context, input session.Session) (session.Session, error) {
+	payload, err := json.Marshal(input)
+	if err != nil {
+		return session.Session{}, err
+	}
+
+	key := r.key(input.ID)
+	if err := r.client.Raw().Set(ctx, key, payload, r.ttl).Err(); err != nil {
+		return session.Session{}, err
+	}
+
+	return input, nil
+}
+
+func (r *SessionRepository) FindByID(ctx context.Context, id string) (session.Session, error) {
+	key := r.key(id)
+
+	value, err := r.client.Raw().Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, goredis.Nil) {
+			return session.Session{}, session.ErrSessionNotFound
+		}
+		return session.Session{}, err
+	}
+
+	var found session.Session
+	if err := json.Unmarshal([]byte(value), &found); err != nil {
+		return session.Session{}, err
+	}
+
+	return found, nil
+}
+
+func (r *SessionRepository) key(id string) string {
+	return "session:" + id
+}

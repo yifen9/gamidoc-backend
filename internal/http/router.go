@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,6 +10,8 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/project"
+	"github.com/yifen9/gamidoc-backend/internal/session"
 )
 
 type postgresReadyChecker interface {
@@ -22,10 +23,12 @@ type redisReadyChecker interface {
 }
 
 type Dependencies struct {
-	Logger      *slog.Logger
-	Postgres    postgresReadyChecker
-	Redis       redisReadyChecker
-	AuthHandler *auth.Handler
+	Logger         *slog.Logger
+	Postgres       postgresReadyChecker
+	Redis          redisReadyChecker
+	AuthHandler    *auth.Handler
+	ProjectHandler *project.Handler
+	SessionHandler *session.Handler
 }
 
 type healthResponse struct {
@@ -50,7 +53,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	r.Use(appmiddleware.Logging(deps.Logger))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, healthResponse{
+		response.WriteJSON(w, http.StatusOK, healthResponse{
 			Status: "ok",
 		})
 	})
@@ -76,16 +79,16 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 
 		if resp.Status != "ok" {
-			writeJSON(w, http.StatusServiceUnavailable, resp)
+			response.WriteJSON(w, http.StatusServiceUnavailable, resp)
 			return
 		}
 
-		writeJSON(w, http.StatusOK, resp)
+		response.WriteJSON(w, http.StatusOK, resp)
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-			writeJSON(w, http.StatusOK, pingResponse{
+			response.WriteJSON(w, http.StatusOK, pingResponse{
 				Message: "pong",
 			})
 		})
@@ -103,13 +106,15 @@ func NewRouter(deps Dependencies) http.Handler {
 		if deps.AuthHandler != nil {
 			r.Mount("/auth", deps.AuthHandler.Routes())
 		}
+
+		if deps.ProjectHandler != nil {
+			r.With(appmiddleware.RequireAuth).Mount("/projects", deps.ProjectHandler.Routes())
+		}
+
+		if deps.SessionHandler != nil {
+			r.Mount("/sessions", deps.SessionHandler.Routes())
+		}
 	})
 
 	return r
-}
-
-func writeJSON(w http.ResponseWriter, status int, value any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(value)
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
+	"github.com/yifen9/gamidoc-backend/internal/project"
+	"github.com/yifen9/gamidoc-backend/internal/session"
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
 	rediscache "github.com/yifen9/gamidoc-backend/internal/storage/redis"
 	"github.com/yifen9/gamidoc-backend/internal/token"
@@ -38,6 +40,14 @@ func New(cfg config.Config) (*App, error) {
 	authService := auth.NewService(userRepository, tokenManager)
 	authHandler := auth.NewHandler(authService)
 
+	projectRepository := postgres.NewProjectRepository(pg)
+	projectService := project.NewService(projectRepository)
+	projectHandler := project.NewHandler(projectService)
+
+	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
+	sessionService := session.NewService(sessionRepository, cfg.SessionTTL)
+	sessionHandler := session.NewHandler(sessionService)
+
 	application := &App{
 		config: cfg,
 		logger: logger,
@@ -46,10 +56,12 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	application.router = apphttp.NewRouter(apphttp.Dependencies{
-		Logger:      application.logger,
-		Postgres:    application.pg,
-		Redis:       application.redis,
-		AuthHandler: authHandler,
+		Logger:         application.logger,
+		Postgres:       application.pg,
+		Redis:          application.redis,
+		AuthHandler:    authHandler,
+		ProjectHandler: projectHandler,
+		SessionHandler: sessionHandler,
 	})
 
 	return application, nil

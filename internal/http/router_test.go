@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/project"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/session"
 	"github.com/yifen9/gamidoc-backend/internal/token"
 	"github.com/yifen9/gamidoc-backend/internal/user"
@@ -154,6 +156,11 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, nil))
 }
 
+func testRecommendationService() *recommendation.Service {
+	engine := recommendation.NewEngine(recommendation.LoadDefaultRules())
+	return recommendation.NewService(engine)
+}
+
 func testAuthHandler() *auth.Handler {
 	repo := &fakeUserRepository{
 		usersByEmail: map[string]user.User{},
@@ -170,7 +177,7 @@ func testProjectHandler() *project.Handler {
 		items: []project.Project{},
 		byID:  map[string]project.Project{},
 	}
-	service := project.NewService(repo, wizard.NewService())
+	service := project.NewService(repo, wizard.NewService(), testRecommendationService())
 	return project.NewHandler(service)
 }
 
@@ -178,7 +185,7 @@ func testSessionHandler() *session.Handler {
 	repo := &fakeSessionRepository{
 		byID: map[string]session.Session{},
 	}
-	service := session.NewService(repo, 48*time.Hour, wizard.NewService())
+	service := session.NewService(repo, 48*time.Hour, wizard.NewService(), testRecommendationService())
 	return session.NewHandler(service)
 }
 
@@ -359,7 +366,7 @@ func TestSaveSessionStepRoute(t *testing.T) {
 	}
 
 	var created session.Session
-	if err := jsonNewDecoder(createRec.Body.String(), &created); err != nil {
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
 		t.Fatal(err)
 	}
 
@@ -397,12 +404,86 @@ func TestSaveProjectStepRoute(t *testing.T) {
 	}
 
 	var created project.Project
-	if err := jsonNewDecoder(createRec.Body.String(), &created); err != nil {
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
 		t.Fatal(err)
 	}
 
 	body := `{"stepData":{"evaluationGoals":["Usability"]}}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/projects/"+created.ID+"/wizard/step/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenValue)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+}
+
+func TestRecommendSessionRoute(t *testing.T) {
+	handler := testSessionHandler()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		SessionHandler: handler,
+	})
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/sessions/create", nil)
+	createRec := httptest.NewRecorder()
+	router.ServeHTTP(createRec, createReq)
+
+	var created session.Session
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	saveBody := `{"stepData":{"evaluationGoals":["Usability & Playability"]}}`
+	saveReq := httptest.NewRequest(http.MethodPut, "/api/v1/sessions/"+created.ID+"/wizard/step/1", strings.NewReader(saveBody))
+	saveReq.Header.Set("Content-Type", "application/json")
+	saveRec := httptest.NewRecorder()
+	router.ServeHTTP(saveRec, saveReq)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/sessions/"+created.ID+"/wizard/recommendations", strings.NewReader(`{"forStep":2}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+}
+
+func TestRecommendProjectRoute(t *testing.T) {
+	tokenValue := authToken()
+	handler := testProjectHandler()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		ProjectHandler: handler,
+	})
+
+	createBody := `{"name":"My Project","description":"Test"}`
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/projects", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+tokenValue)
+	createRec := httptest.NewRecorder()
+	router.ServeHTTP(createRec, createReq)
+
+	var created project.Project
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	saveBody := `{"stepData":{"evaluationGoals":["Usability & Playability"]}}`
+	saveReq := httptest.NewRequest(http.MethodPut, "/api/v1/projects/"+created.ID+"/wizard/step/1", strings.NewReader(saveBody))
+	saveReq.Header.Set("Content-Type", "application/json")
+	saveReq.Header.Set("Authorization", "Bearer "+tokenValue)
+	saveRec := httptest.NewRecorder()
+	router.ServeHTTP(saveRec, saveReq)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+created.ID+"/wizard/recommendations", strings.NewReader(`{"forStep":2}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenValue)
 	rec := httptest.NewRecorder()

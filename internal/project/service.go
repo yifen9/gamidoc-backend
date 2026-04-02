@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
@@ -15,8 +16,9 @@ var ErrProjectNotFound = errors.New("project not found")
 var ErrForbiddenProject = errors.New("forbidden project")
 
 type Service struct {
-	projects Repository
-	wizard   *wizard.Service
+	projects        Repository
+	wizard          *wizard.Service
+	recommendations *recommendation.Service
 }
 
 type CreateInput struct {
@@ -28,10 +30,11 @@ type SaveStepInput struct {
 	StepData json.RawMessage `json:"stepData"`
 }
 
-func NewService(projects Repository, wizardService *wizard.Service) *Service {
+func NewService(projects Repository, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
 	return &Service{
-		projects: projects,
-		wizard:   wizardService,
+		projects:        projects,
+		wizard:          wizardService,
+		recommendations: recommendationService,
 	}
 }
 
@@ -85,4 +88,17 @@ func (s *Service) SaveStep(ctx context.Context, userID string, projectID string,
 	}
 
 	return s.projects.UpdateWizard(ctx, projectID, updatedStatus)
+}
+
+func (s *Service) Recommend(ctx context.Context, userID string, projectID string, forStep int) (recommendation.Result, error) {
+	found, err := s.projects.FindByID(ctx, projectID)
+	if err != nil {
+		return recommendation.Result{}, err
+	}
+
+	if found.UserID != userID {
+		return recommendation.Result{}, ErrForbiddenProject
+	}
+
+	return s.recommendations.Recommend(found.Wizard, forStep)
 }

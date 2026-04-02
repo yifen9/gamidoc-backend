@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
@@ -25,6 +26,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/create", h.create)
 	r.Get("/{sessionId}", h.get)
 	r.Put("/{sessionId}/wizard/step/{stepNumber}", h.saveStep)
+	r.Post("/{sessionId}/wizard/recommendations", h.recommend)
 
 	return r
 }
@@ -105,4 +107,35 @@ func (h *Handler) saveStep(w http.ResponseWriter, r *http.Request) {
 		"createdAt":    updated.CreatedAt,
 		"expiresAt":    updated.ExpiresAt,
 	})
+}
+
+func (h *Handler) recommend(w http.ResponseWriter, r *http.Request) {
+	sessionID := chi.URLParam(r, "sessionId")
+	if sessionID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_SESSION_ID", "Invalid session id", nil)
+		return
+	}
+
+	var input struct {
+		ForStep int `json:"forStep"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
+		return
+	}
+
+	result, err := h.service.Recommend(r.Context(), sessionID, input.ForStep)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrSessionNotFound):
+			response.WriteError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found or expired", nil)
+		case errors.Is(err, recommendation.ErrInvalidRecommendationStep):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_RECOMMENDATION_STEP", "Invalid recommendation step", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, result)
 }

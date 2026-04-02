@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
@@ -27,6 +28,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Get("/", h.list)
 	r.Get("/{projectId}", h.get)
 	r.Put("/{projectId}/wizard/step/{stepNumber}", h.saveStep)
+	r.Post("/{projectId}/wizard/recommendations", h.recommend)
 
 	return r
 }
@@ -156,4 +158,43 @@ func (h *Handler) saveStep(w http.ResponseWriter, r *http.Request) {
 		"updatedAt":    updated.UpdatedAt,
 		"wizardStatus": updated.Wizard,
 	})
+}
+
+func (h *Handler) recommend(w http.ResponseWriter, r *http.Request) {
+	userID := appmiddleware.GetAuthUserID(r.Context())
+	if userID == "" {
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	projectID := chi.URLParam(r, "projectId")
+	if projectID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_PROJECT_ID", "Invalid project id", nil)
+		return
+	}
+
+	var input struct {
+		ForStep int `json:"forStep"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
+		return
+	}
+
+	result, err := h.service.Recommend(r.Context(), userID, projectID, input.ForStep)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrProjectNotFound):
+			response.WriteError(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "Project not found", nil)
+		case errors.Is(err, ErrForbiddenProject):
+			response.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Project does not belong to user", nil)
+		case errors.Is(err, recommendation.ErrInvalidRecommendationStep):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_RECOMMENDATION_STEP", "Invalid recommendation step", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, result)
 }

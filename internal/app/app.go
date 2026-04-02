@@ -10,6 +10,7 @@ import (
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/project"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/session"
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
 	rediscache "github.com/yifen9/gamidoc-backend/internal/storage/redis"
@@ -38,17 +39,19 @@ func New(cfg config.Config) (*App, error) {
 	appmiddleware.SetTokenManager(tokenManager)
 
 	wizardService := wizard.NewService()
+	recommendationEngine := recommendation.NewEngine(recommendation.LoadDefaultRules())
+	recommendationService := recommendation.NewService(recommendationEngine)
 
 	userRepository := postgres.NewUserRepository(pg)
 	authService := auth.NewService(userRepository, tokenManager)
 	authHandler := auth.NewHandler(authService)
 
 	projectRepository := postgres.NewProjectRepository(pg)
-	projectService := project.NewService(projectRepository, wizardService)
+	projectService := project.NewService(projectRepository, wizardService, recommendationService)
 	projectHandler := project.NewHandler(projectService)
 
 	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
-	sessionService := session.NewService(sessionRepository, cfg.SessionTTL, wizardService)
+	sessionService := session.NewService(sessionRepository, cfg.SessionTTL, wizardService, recommendationService)
 	sessionHandler := session.NewHandler(sessionService)
 
 	application := &App{

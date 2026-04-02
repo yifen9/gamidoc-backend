@@ -7,22 +7,25 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 var ErrSessionNotFound = errors.New("session not found")
 
 type Service struct {
-	sessions Repository
-	ttl      time.Duration
-	wizard   *wizard.Service
+	sessions        Repository
+	ttl             time.Duration
+	wizard          *wizard.Service
+	recommendations *recommendation.Service
 }
 
-func NewService(sessions Repository, ttl time.Duration, wizardService *wizard.Service) *Service {
+func NewService(sessions Repository, ttl time.Duration, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
 	return &Service{
-		sessions: sessions,
-		ttl:      ttl,
-		wizard:   wizardService,
+		sessions:        sessions,
+		ttl:             ttl,
+		wizard:          wizardService,
+		recommendations: recommendationService,
 	}
 }
 
@@ -53,4 +56,13 @@ func (s *Service) SaveStep(ctx context.Context, sessionID string, stepNumber int
 	}
 
 	return s.sessions.UpdateWizard(ctx, sessionID, updatedStatus)
+}
+
+func (s *Service) Recommend(ctx context.Context, sessionID string, forStep int) (recommendation.Result, error) {
+	found, err := s.sessions.FindByID(ctx, sessionID)
+	if err != nil {
+		return recommendation.Result{}, err
+	}
+
+	return s.recommendations.Recommend(found.Wizard, forStep)
 }

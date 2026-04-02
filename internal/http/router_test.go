@@ -7,7 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/yifen9/gamidoc-backend/internal/auth"
+	"github.com/yifen9/gamidoc-backend/internal/token"
+	"github.com/yifen9/gamidoc-backend/internal/user"
 )
 
 type fakePostgres struct {
@@ -26,8 +32,52 @@ func (f *fakeRedis) Ready(ctx context.Context) error {
 	return f.readyErr
 }
 
+type fakeUserRepository struct {
+	usersByEmail map[string]user.User
+	usersByID    map[string]user.User
+}
+
+func (r *fakeUserRepository) Create(ctx context.Context, input user.User) (user.User, error) {
+	input.CreatedAt = time.Now()
+	if r.usersByEmail == nil {
+		r.usersByEmail = map[string]user.User{}
+	}
+	if r.usersByID == nil {
+		r.usersByID = map[string]user.User{}
+	}
+	r.usersByEmail[input.Email] = input
+	r.usersByID[input.ID] = input
+	return input, nil
+}
+
+func (r *fakeUserRepository) FindByEmail(ctx context.Context, email string) (user.User, error) {
+	u, ok := r.usersByEmail[email]
+	if !ok {
+		return user.User{}, errors.New("not found")
+	}
+	return u, nil
+}
+
+func (r *fakeUserRepository) FindByID(ctx context.Context, id string) (user.User, error) {
+	u, ok := r.usersByID[id]
+	if !ok {
+		return user.User{}, errors.New("not found")
+	}
+	return u, nil
+}
+
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, nil))
+}
+
+func testAuthHandler() *auth.Handler {
+	repo := &fakeUserRepository{
+		usersByEmail: map[string]user.User{},
+		usersByID:    map[string]user.User{},
+	}
+	manager := token.NewManager("secret", time.Hour)
+	service := auth.NewService(repo, manager)
+	return auth.NewHandler(service)
 }
 
 func TestHealthRoute(t *testing.T) {
@@ -125,5 +175,23 @@ func TestRecoveryMiddleware(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	}
+}
+
+func TestRegisterRoute(t *testing.T) {
+	router := NewRouter(Dependencies{
+		Logger:      testLogger(),
+		AuthHandler: testAuthHandler(),
+	})
+
+	body := `{"email":"test@example.com","password":"password123"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, rec.Code)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yifen9/gamidoc-backend/internal/auth"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
 )
@@ -21,9 +22,10 @@ type redisReadyChecker interface {
 }
 
 type Dependencies struct {
-	Logger   *slog.Logger
-	Postgres postgresReadyChecker
-	Redis    redisReadyChecker
+	Logger      *slog.Logger
+	Postgres    postgresReadyChecker
+	Redis       redisReadyChecker
+	AuthHandler *auth.Handler
 }
 
 type healthResponse struct {
@@ -97,6 +99,10 @@ func NewRouter(deps Dependencies) http.Handler {
 				"path": r.URL.Path,
 			})
 		})
+
+		if deps.AuthHandler != nil {
+			r.Mount("/auth", deps.AuthHandler.Routes())
+		}
 	})
 
 	return r

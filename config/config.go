@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -17,9 +18,18 @@ type Config struct {
 
 	RedisHost string
 	RedisPort string
+
+	JWTSecret    string
+	JWTExpiresIn time.Duration
 }
 
 func Load() Config {
+	expiresIn := getEnv("JWT_EXPIRES_IN", "24h")
+	parsedExpiresIn, err := time.ParseDuration(expiresIn)
+	if err != nil {
+		parsedExpiresIn = 24 * time.Hour
+	}
+
 	return Config{
 		AppEnv:           getEnv("APP_ENV", "development"),
 		HTTPAddr:         getEnv("HTTP_ADDR", ":8080"),
@@ -30,6 +40,8 @@ func Load() Config {
 		PostgresPassword: getEnv("POSTGRES_PASSWORD", "gamidoc"),
 		RedisHost:        getEnv("REDIS_HOST", "localhost"),
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
+		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
+		JWTExpiresIn:     parsedExpiresIn,
 	}
 }
 

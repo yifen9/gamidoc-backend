@@ -6,9 +6,12 @@ import (
 	"os"
 
 	"github.com/yifen9/gamidoc-backend/config"
+	"github.com/yifen9/gamidoc-backend/internal/auth"
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
+	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
 	rediscache "github.com/yifen9/gamidoc-backend/internal/storage/redis"
+	"github.com/yifen9/gamidoc-backend/internal/token"
 )
 
 type App struct {
@@ -28,6 +31,12 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	redisClient := rediscache.New(cfg.RedisAddr())
+	tokenManager := token.NewManager(cfg.JWTSecret, cfg.JWTExpiresIn)
+	appmiddleware.SetTokenManager(tokenManager)
+
+	userRepository := postgres.NewUserRepository(pg)
+	authService := auth.NewService(userRepository, tokenManager)
+	authHandler := auth.NewHandler(authService)
 
 	application := &App{
 		config: cfg,
@@ -37,9 +46,10 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	application.router = apphttp.NewRouter(apphttp.Dependencies{
-		Logger:   application.logger,
-		Postgres: application.pg,
-		Redis:    application.redis,
+		Logger:      application.logger,
+		Postgres:    application.pg,
+		Redis:       application.redis,
+		AuthHandler: authHandler,
 	})
 
 	return application, nil

@@ -9,10 +9,12 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
+	"github.com/yifen9/gamidoc-backend/internal/pdf"
 	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/session"
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
+	"github.com/yifen9/gamidoc-backend/internal/storage/r2"
 	rediscache "github.com/yifen9/gamidoc-backend/internal/storage/redis"
 	"github.com/yifen9/gamidoc-backend/internal/token"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
@@ -54,6 +56,20 @@ func New(cfg config.Config) (*App, error) {
 	sessionService := session.NewService(sessionRepository, cfg.SessionTTL, wizardService, recommendationService)
 	sessionHandler := session.NewHandler(sessionService)
 
+	store := r2.NewLocalStore(cfg.PDFStorageDir, cfg.PDFBaseURL)
+	pdfBuilder := pdf.NewBuilder()
+	pdfGenerator := pdf.NewFPDFGenerator()
+	pdfService := pdf.NewService(
+		pdfBuilder,
+		pdfGenerator,
+		store,
+		projectRepository,
+		sessionRepository,
+		projectService,
+		sessionService,
+	)
+	pdfHandler := pdf.NewHandler(pdfService)
+
 	application := &App{
 		config: cfg,
 		logger: logger,
@@ -68,6 +84,7 @@ func New(cfg config.Config) (*App, error) {
 		AuthHandler:    authHandler,
 		ProjectHandler: projectHandler,
 		SessionHandler: sessionHandler,
+		PDFHandler:     pdfHandler,
 	})
 
 	return application, nil

@@ -77,6 +77,27 @@ func (r *SessionRepository) UpdateWizard(ctx context.Context, id string, status 
 	return found, nil
 }
 
+func (r *SessionRepository) UpdatePDFURL(ctx context.Context, id string, pdfURL string) (session.Session, error) {
+	found, err := r.FindByID(ctx, id)
+	if err != nil {
+		return session.Session{}, err
+	}
+
+	found.PDFURL = &pdfURL
+
+	payload, err := json.Marshal(found)
+	if err != nil {
+		return session.Session{}, err
+	}
+
+	key := r.key(id)
+	if err := r.client.Raw().Set(ctx, key, payload, r.ttl).Err(); err != nil {
+		return session.Session{}, err
+	}
+
+	return found, nil
+}
+
 func (r *SessionRepository) key(id string) string {
 	return "session:" + id
 }

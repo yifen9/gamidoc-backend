@@ -23,6 +23,9 @@ type Config struct {
 	JWTExpiresIn time.Duration
 
 	SessionTTL time.Duration
+
+	PDFStorageDir string
+	PDFBaseURL    string
 }
 
 func Load() Config {
@@ -51,6 +54,8 @@ func Load() Config {
 		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
 		JWTExpiresIn:     parsedExpiresIn,
 		SessionTTL:       parsedSessionTTL,
+		PDFStorageDir:    getEnv("PDF_STORAGE_DIR", ".localdata/pdfs"),
+		PDFBaseURL:       getEnv("PDF_BASE_URL", "/files/pdfs"),
 	}
 }
 

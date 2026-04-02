@@ -10,6 +10,7 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/pdf"
 	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/session"
 )
@@ -29,6 +30,7 @@ type Dependencies struct {
 	AuthHandler    *auth.Handler
 	ProjectHandler *project.Handler
 	SessionHandler *session.Handler
+	PDFHandler     *pdf.Handler
 }
 
 type healthResponse struct {
@@ -86,6 +88,10 @@ func NewRouter(deps Dependencies) http.Handler {
 		response.WriteJSON(w, http.StatusOK, resp)
 	})
 
+	if deps.PDFHandler != nil {
+		r.Get("/files/pdfs/*", deps.PDFHandler.Download)
+	}
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 			response.WriteJSON(w, http.StatusOK, pingResponse{
@@ -113,6 +119,11 @@ func NewRouter(deps Dependencies) http.Handler {
 
 		if deps.SessionHandler != nil {
 			r.Mount("/sessions", deps.SessionHandler.Routes())
+		}
+
+		if deps.PDFHandler != nil {
+			r.With(appmiddleware.RequireAuth).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
+			r.Post("/sessions/{sessionId}/generate-pdf", deps.PDFHandler.SessionGenerate)
 		}
 	})
 

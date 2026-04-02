@@ -124,6 +124,30 @@ func (r *ProjectRepository) UpdateWizard(ctx context.Context, projectID string, 
 	return found, nil
 }
 
+func (r *ProjectRepository) UpdatePDFURL(ctx context.Context, projectID string, pdfURL string) (project.Project, error) {
+	row := r.db.sql.QueryRowContext(
+		ctx,
+		`
+		UPDATE projects
+		SET pdf_url = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, user_id, name, description, wizard_data, pdf_url, created_at, updated_at
+		`,
+		projectID,
+		pdfURL,
+	)
+
+	found, err := scanProject(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return project.Project{}, project.ErrProjectNotFound
+		}
+		return project.Project{}, err
+	}
+
+	return found, nil
+}
+
 type projectScanner interface {
 	Scan(dest ...any) error
 }

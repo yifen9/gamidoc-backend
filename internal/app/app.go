@@ -8,7 +8,6 @@ import (
 	"github.com/yifen9/gamidoc-backend/config"
 	"github.com/yifen9/gamidoc-backend/internal/auth"
 	apphttp "github.com/yifen9/gamidoc-backend/internal/http"
-	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/pdf"
 	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/recommendation"
@@ -38,15 +37,19 @@ func New(cfg config.Config) (*App, error) {
 
 	redisClient := rediscache.New(cfg.RedisAddr())
 	tokenManager := token.NewManager(cfg.JWTSecret, cfg.JWTExpiresIn)
-	appmiddleware.SetTokenManager(tokenManager)
 
 	wizardService := wizard.NewService()
-	recommendationEngine := recommendation.NewEngine(recommendation.LoadDefaultRules())
+
+	rules, err := recommendation.LoadRulesFromFile(cfg.RecommendationRulesPath)
+	if err != nil {
+		return nil, err
+	}
+	recommendationEngine := recommendation.NewEngine(rules)
 	recommendationService := recommendation.NewService(recommendationEngine)
 
 	userRepository := postgres.NewUserRepository(pg)
 	authService := auth.NewService(userRepository, tokenManager)
-	authHandler := auth.NewHandler(authService)
+	authHandler := auth.NewHandler(authService, tokenManager)
 
 	projectRepository := postgres.NewProjectRepository(pg)
 	projectService := project.NewService(projectRepository, wizardService, recommendationService)
@@ -81,7 +84,8 @@ func New(cfg config.Config) (*App, error) {
 		Logger:         application.logger,
 		Postgres:       application.pg,
 		Redis:          application.redis,
-		AuthHandler:    authHandler,
+		TokenManager:   tokenManager,
+		AuthHandler:    authHandler.Routes(),
 		ProjectHandler: projectHandler,
 		SessionHandler: sessionHandler,
 		PDFHandler:     pdfHandler,

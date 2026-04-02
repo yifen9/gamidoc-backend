@@ -1,0 +1,79 @@
+[
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Usability & Playability"],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system",
+        "priority": "Recommended",
+        "rationale": "Useful for early usability evaluation with limited participants"
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through questionnaires",
+        "priority": "Recommended",
+        "rationale": "Helpful for measuring perceived usability and satisfaction"
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Guidance & Feedback"],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "heuristic-evaluation",
+        "name": "Heuristic evaluation",
+        "description": "Experts inspect the interface against established usability principles",
+        "priority": "Recommended",
+        "rationale": "Useful for identifying guidance and feedback issues early"
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through questionnaires",
+        "priority": "Engagement",
+        "rationale": "Can complement expert-based findings with user perceptions"
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "useq-like",
+        "name": "USEQ-Like",
+        "description": "A short questionnaire targeting usability experience",
+        "priority": "Recommended",
+        "rationale": "Suitable when using questionnaires for usability evaluation"
+      },
+      {
+        "id": "sus",
+        "name": "SUS",
+        "description": "System Usability Scale",
+        "priority": "Engagement",
+        "rationale": "Widely used instrument for perceived usability"
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredMethods": ["think-aloud"],
+    "recommendations": [
+      {
+        "id": "observation-grid",
+        "name": "Observation Grid",
+        "description": "Structured note-taking sheet for observed usability issues",
+        "priority": "Recommended",
+        "rationale": "Useful for capturing qualitative insights during think-aloud sessions"
+      }
+    ]
+  }
+]

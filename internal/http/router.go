@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/yifen9/gamidoc-backend/internal/auth"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
 	"github.com/yifen9/gamidoc-backend/internal/pdf"
 	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/session"
+	"github.com/yifen9/gamidoc-backend/internal/token"
 )
 
 type postgresReadyChecker interface {
@@ -27,7 +27,8 @@ type Dependencies struct {
 	Logger         *slog.Logger
 	Postgres       postgresReadyChecker
 	Redis          redisReadyChecker
-	AuthHandler    *auth.Handler
+	TokenManager   *token.Manager
+	AuthHandler    http.Handler
 	ProjectHandler *project.Handler
 	SessionHandler *session.Handler
 	PDFHandler     *pdf.Handler
@@ -110,11 +111,11 @@ func NewRouter(deps Dependencies) http.Handler {
 		})
 
 		if deps.AuthHandler != nil {
-			r.Mount("/auth", deps.AuthHandler.Routes())
+			r.Mount("/auth", deps.AuthHandler)
 		}
 
 		if deps.ProjectHandler != nil {
-			r.With(appmiddleware.RequireAuth).Mount("/projects", deps.ProjectHandler.Routes())
+			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Mount("/projects", deps.ProjectHandler.Routes())
 		}
 
 		if deps.SessionHandler != nil {
@@ -122,7 +123,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 
 		if deps.PDFHandler != nil {
-			r.With(appmiddleware.RequireAuth).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
 			r.Post("/sessions/{sessionId}/generate-pdf", deps.PDFHandler.SessionGenerate)
 		}
 	})

@@ -9,14 +9,19 @@ import (
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
+	"github.com/yifen9/gamidoc-backend/internal/token"
 )
 
 type Handler struct {
-	service *Service
+	service      *Service
+	tokenManager *token.Manager
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, tokenManager *token.Manager) *Handler {
+	return &Handler{
+		service:      service,
+		tokenManager: tokenManager,
+	}
 }
 
 func (h *Handler) Routes() chi.Router {
@@ -24,7 +29,7 @@ func (h *Handler) Routes() chi.Router {
 
 	r.Post("/register", h.register)
 	r.Post("/login", h.login)
-	r.With(appmiddleware.RequireAuth).Get("/me", h.me)
+	r.With(appmiddleware.RequireAuth(h.tokenManager)).Get("/me", h.me)
 
 	return r
 }

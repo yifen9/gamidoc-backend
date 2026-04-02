@@ -26,6 +26,8 @@ type Config struct {
 
 	PDFStorageDir string
 	PDFBaseURL    string
+
+	RecommendationRulesPath string
 }
 
 func Load() Config {
@@ -42,20 +44,21 @@ func Load() Config {
 	}
 
 	return Config{
-		AppEnv:           getEnv("APP_ENV", "development"),
-		HTTPAddr:         getEnv("HTTP_ADDR", ":8080"),
-		PostgresHost:     getEnv("POSTGRES_HOST", "localhost"),
-		PostgresPort:     getEnv("POSTGRES_PORT", "5432"),
-		PostgresDB:       getEnv("POSTGRES_DB", "gamidoc"),
-		PostgresUser:     getEnv("POSTGRES_USER", "gamidoc"),
-		PostgresPassword: getEnv("POSTGRES_PASSWORD", "gamidoc"),
-		RedisHost:        getEnv("REDIS_HOST", "localhost"),
-		RedisPort:        getEnv("REDIS_PORT", "6379"),
-		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
-		JWTExpiresIn:     parsedExpiresIn,
-		SessionTTL:       parsedSessionTTL,
-		PDFStorageDir:    getEnv("PDF_STORAGE_DIR", ".localdata/pdfs"),
-		PDFBaseURL:       getEnv("PDF_BASE_URL", "/files/pdfs"),
+		AppEnv:                  getEnv("APP_ENV", "development"),
+		HTTPAddr:                getEnv("HTTP_ADDR", ":8080"),
+		PostgresHost:            getEnv("POSTGRES_HOST", "localhost"),
+		PostgresPort:            getEnv("POSTGRES_PORT", "5432"),
+		PostgresDB:              getEnv("POSTGRES_DB", "gamidoc"),
+		PostgresUser:            getEnv("POSTGRES_USER", "gamidoc"),
+		PostgresPassword:        getEnv("POSTGRES_PASSWORD", "gamidoc"),
+		RedisHost:               getEnv("REDIS_HOST", "localhost"),
+		RedisPort:               getEnv("REDIS_PORT", "6379"),
+		JWTSecret:               getEnv("JWT_SECRET", "dev-secret"),
+		JWTExpiresIn:            parsedExpiresIn,
+		SessionTTL:              parsedSessionTTL,
+		PDFStorageDir:           getEnv("PDF_STORAGE_DIR", ".localdata/pdfs"),
+		PDFBaseURL:              getEnv("PDF_BASE_URL", "/files/pdfs"),
+		RecommendationRulesPath: getEnv("RECOMMENDATION_RULES_PATH", "rule/recommendations.json"),
 	}
 }
 

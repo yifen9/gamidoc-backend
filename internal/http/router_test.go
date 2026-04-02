@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/yifen9/gamidoc-backend/internal/auth"
-	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/session"
@@ -122,6 +121,22 @@ func (r *fakeProjectRepository) UpdateWizard(ctx context.Context, projectID stri
 	return item, nil
 }
 
+func (r *fakeProjectRepository) UpdatePDFURL(ctx context.Context, projectID string, pdfURL string) (project.Project, error) {
+	item, ok := r.byID[projectID]
+	if !ok {
+		return project.Project{}, project.ErrProjectNotFound
+	}
+	item.PDFURL = &pdfURL
+	item.UpdatedAt = time.Now()
+	r.byID[projectID] = item
+	for i := range r.items {
+		if r.items[i].ID == projectID {
+			r.items[i] = item
+		}
+	}
+	return item, nil
+}
+
 type fakeSessionRepository struct {
 	byID map[string]session.Session
 }
@@ -152,24 +167,55 @@ func (r *fakeSessionRepository) UpdateWizard(ctx context.Context, id string, sta
 	return item, nil
 }
 
+func (r *fakeSessionRepository) UpdatePDFURL(ctx context.Context, id string, pdfURL string) (session.Session, error) {
+	item, ok := r.byID[id]
+	if !ok {
+		return session.Session{}, session.ErrSessionNotFound
+	}
+	item.PDFURL = &pdfURL
+	r.byID[id] = item
+	return item, nil
+}
+
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, nil))
 }
 
 func testRecommendationService() *recommendation.Service {
-	engine := recommendation.NewEngine(recommendation.LoadDefaultRules())
+	engine := recommendation.NewEngine([]recommendation.Rule{
+		{
+			ForStep:                 2,
+			RequiredEvaluationGoals: []string{"Usability & Playability"},
+			Recommendations: []recommendation.Recommendation{
+				{ID: "think-aloud", Name: "Think-aloud testing"},
+				{ID: "surveys", Name: "Surveys & Questionnaires"},
+			},
+		},
+		{
+			ForStep:         3,
+			RequiredMethods: []string{"surveys"},
+			Recommendations: []recommendation.Recommendation{
+				{ID: "useq-like", Name: "USEQ-Like"},
+				{ID: "sus", Name: "SUS"},
+			},
+		},
+	})
 	return recommendation.NewService(engine)
 }
 
-func testAuthHandler() *auth.Handler {
+func testTokenManager() *token.Manager {
+	return token.NewManager("secret", time.Hour)
+}
+
+func testAuthHandler() http.Handler {
 	repo := &fakeUserRepository{
 		usersByEmail: map[string]user.User{},
 		usersByID:    map[string]user.User{},
 	}
-	manager := token.NewManager("secret", time.Hour)
-	appmiddleware.SetTokenManager(manager)
+	manager := testTokenManager()
 	service := auth.NewService(repo, manager)
-	return auth.NewHandler(service)
+	handler := auth.NewHandler(service, manager)
+	return handler.Routes()
 }
 
 func testProjectHandler() *project.Handler {
@@ -190,9 +236,8 @@ func testSessionHandler() *session.Handler {
 }
 
 func authToken() string {
-	manager := token.NewManager("secret", time.Hour)
+	manager := testTokenManager()
 	value, _ := manager.Generate("user-1", "test@example.com")
-	appmiddleware.SetTokenManager(manager)
 	return value
 }
 
@@ -296,8 +341,9 @@ func TestRecoveryMiddleware(t *testing.T) {
 
 func TestRegisterRoute(t *testing.T) {
 	router := NewRouter(Dependencies{
-		Logger:      testLogger(),
-		AuthHandler: testAuthHandler(),
+		Logger:       testLogger(),
+		TokenManager: testTokenManager(),
+		AuthHandler:  testAuthHandler(),
 	})
 
 	body := `{"email":"test@example.com","password":"password123"}`
@@ -333,6 +379,7 @@ func TestCreateProjectRoute(t *testing.T) {
 
 	router := NewRouter(Dependencies{
 		Logger:         testLogger(),
+		TokenManager:   testTokenManager(),
 		ProjectHandler: testProjectHandler(),
 	})
 
@@ -388,6 +435,7 @@ func TestSaveProjectStepRoute(t *testing.T) {
 
 	router := NewRouter(Dependencies{
 		Logger:         testLogger(),
+		TokenManager:   testTokenManager(),
 		ProjectHandler: handler,
 	})
 
@@ -461,6 +509,7 @@ func TestRecommendProjectRoute(t *testing.T) {
 
 	router := NewRouter(Dependencies{
 		Logger:         testLogger(),
+		TokenManager:   testTokenManager(),
 		ProjectHandler: handler,
 	})
 

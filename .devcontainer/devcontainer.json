@@ -8,7 +8,8 @@
       "extensions": [
         "jeff-hykin.better-dockerfile-syntax",
         "tamasfe.even-better-toml",
-        "nefrob.vscode-just-syntax"
+        "nefrob.vscode-just-syntax",
+        "golang.go"
       ]
     }
   }

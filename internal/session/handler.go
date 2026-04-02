@@ -7,17 +7,23 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/project"
 	"github.com/yifen9/gamidoc-backend/internal/recommendation"
 	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type Handler struct {
-	service *Service
+	service        *Service
+	projectService *project.Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, projectService *project.Service) *Handler {
+	return &Handler{
+		service:        service,
+		projectService: projectService,
+	}
 }
 
 func (h *Handler) Routes() chi.Router {
@@ -29,6 +35,41 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/{sessionId}/wizard/recommendations", h.recommend)
 
 	return r
+}
+
+func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
+	userID := appmiddleware.GetAuthUserID(r.Context())
+	if userID == "" {
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	sessionID := chi.URLParam(r, "sessionId")
+	if sessionID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_SESSION_ID", "Invalid session id", nil)
+		return
+	}
+
+	var input project.ConvertInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
+		return
+	}
+
+	created, err := h.projectService.CreateFromSession(r.Context(), userID, sessionID, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrSessionNotFound):
+			response.WriteError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found or expired", nil)
+		case errors.Is(err, project.ErrInvalidProjectName):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_PROJECT_NAME", "Project name is required", map[string]any{"field": "name"})
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusCreated, created)
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {

@@ -52,12 +52,13 @@ func New(cfg config.Config) (*App, error) {
 	authHandler := auth.NewHandler(authService, tokenManager)
 
 	projectRepository := postgres.NewProjectRepository(pg)
-	projectService := project.NewService(projectRepository, wizardService, recommendationService)
+	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
+
+	projectService := project.NewService(projectRepository, sessionRepository, wizardService, recommendationService)
 	projectHandler := project.NewHandler(projectService)
 
-	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
 	sessionService := session.NewService(sessionRepository, cfg.SessionTTL, wizardService, recommendationService)
-	sessionHandler := session.NewHandler(sessionService)
+	sessionHandler := session.NewHandler(sessionService, projectService)
 
 	store := r2.NewLocalStore(cfg.PDFStorageDir, cfg.PDFBaseURL)
 	pdfBuilder := pdf.NewBuilder()

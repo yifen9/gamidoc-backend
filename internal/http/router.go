@@ -120,6 +120,7 @@ func NewRouter(deps Dependencies) http.Handler {
 
 		if deps.SessionHandler != nil {
 			r.Mount("/sessions", deps.SessionHandler.Routes())
+			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/sessions/{sessionId}/convert", deps.SessionHandler.Convert)
 		}
 
 		if deps.PDFHandler != nil {

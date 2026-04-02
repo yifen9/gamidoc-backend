@@ -105,7 +105,7 @@ func (r *ProjectRepository) UpdateWizard(ctx context.Context, projectID string, 
 		ctx,
 		`
 		UPDATE projects
-		SET wizard_data = $2, updated_at = NOW()
+		SET wizard_data = $2, pdf_url = NULL, updated_at = NOW()
 		WHERE id = $1
 		RETURNING id, user_id, name, description, wizard_data, pdf_url, created_at, updated_at
 		`,
@@ -122,6 +122,56 @@ func (r *ProjectRepository) UpdateWizard(ctx context.Context, projectID string, 
 	}
 
 	return found, nil
+}
+
+func (r *ProjectRepository) UpdateInfo(ctx context.Context, projectID string, name string, description string) (project.Project, error) {
+	row := r.db.sql.QueryRowContext(
+		ctx,
+		`
+		UPDATE projects
+		SET name = $2, description = $3, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, user_id, name, description, wizard_data, pdf_url, created_at, updated_at
+		`,
+		projectID,
+		name,
+		nullableString(description),
+	)
+
+	found, err := scanProject(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return project.Project{}, project.ErrProjectNotFound
+		}
+		return project.Project{}, err
+	}
+
+	return found, nil
+}
+
+func (r *ProjectRepository) Delete(ctx context.Context, projectID string) error {
+	result, err := r.db.sql.ExecContext(
+		ctx,
+		`
+		DELETE FROM projects
+		WHERE id = $1
+		`,
+		projectID,
+	)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return project.ErrProjectNotFound
+	}
+
+	return nil
 }
 
 func (r *ProjectRepository) UpdatePDFURL(ctx context.Context, projectID string, pdfURL string) (project.Project, error) {
@@ -179,6 +229,8 @@ func scanProject(scanner projectScanner) (project.Project, error) {
 	if pdfURL.Valid {
 		value := pdfURL.String
 		found.PDFURL = &value
+	} else {
+		found.PDFURL = nil
 	}
 
 	if len(wizardData) == 0 {

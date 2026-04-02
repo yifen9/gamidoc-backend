@@ -56,6 +56,14 @@ func (r *SessionRepository) FindByID(ctx context.Context, id string) (session.Se
 	return found, nil
 }
 
+func (r *SessionRepository) FindWizardByID(ctx context.Context, id string) (wizard.Status, error) {
+	found, err := r.FindByID(ctx, id)
+	if err != nil {
+		return wizard.Status{}, err
+	}
+	return found.Wizard, nil
+}
+
 func (r *SessionRepository) UpdateWizard(ctx context.Context, id string, status wizard.Status) (session.Session, error) {
 	found, err := r.FindByID(ctx, id)
 	if err != nil {
@@ -63,6 +71,7 @@ func (r *SessionRepository) UpdateWizard(ctx context.Context, id string, status 
 	}
 
 	found.Wizard = status
+	found.PDFURL = nil
 
 	payload, err := json.Marshal(found)
 	if err != nil {

@@ -15,8 +15,13 @@ var ErrInvalidProjectName = errors.New("invalid project name")
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbiddenProject = errors.New("forbidden project")
 
+type SessionWizardReader interface {
+	FindWizardByID(ctx context.Context, sessionID string) (wizard.Status, error)
+}
+
 type Service struct {
 	projects        Repository
+	sessions        SessionWizardReader
 	wizard          *wizard.Service
 	recommendations *recommendation.Service
 }
@@ -26,13 +31,24 @@ type CreateInput struct {
 	Description string `json:"description"`
 }
 
+type UpdateInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type ConvertInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 type SaveStepInput struct {
 	StepData json.RawMessage `json:"stepData"`
 }
 
-func NewService(projects Repository, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
+func NewService(projects Repository, sessions SessionWizardReader, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
 	return &Service{
 		projects:        projects,
+		sessions:        sessions,
 		wizard:          wizardService,
 		recommendations: recommendationService,
 	}
@@ -52,6 +68,28 @@ func (s *Service) Create(ctx context.Context, userID string, input CreateInput) 
 		Name:        name,
 		Description: description,
 		Wizard:      NewInitialWizardStatus(),
+	})
+}
+
+func (s *Service) CreateFromSession(ctx context.Context, userID string, sessionID string, input ConvertInput) (Project, error) {
+	name := strings.TrimSpace(input.Name)
+	description := strings.TrimSpace(input.Description)
+
+	if name == "" {
+		return Project{}, ErrInvalidProjectName
+	}
+
+	foundWizard, err := s.sessions.FindWizardByID(ctx, sessionID)
+	if err != nil {
+		return Project{}, err
+	}
+
+	return s.projects.Create(ctx, Project{
+		ID:          uuid.NewString(),
+		UserID:      userID,
+		Name:        name,
+		Description: description,
+		Wizard:      foundWizard,
 	})
 }
 
@@ -101,4 +139,37 @@ func (s *Service) Recommend(ctx context.Context, userID string, projectID string
 	}
 
 	return s.recommendations.Recommend(found.Wizard, forStep)
+}
+
+func (s *Service) Update(ctx context.Context, userID string, projectID string, input UpdateInput) (Project, error) {
+	found, err := s.projects.FindByID(ctx, projectID)
+	if err != nil {
+		return Project{}, err
+	}
+
+	if found.UserID != userID {
+		return Project{}, ErrForbiddenProject
+	}
+
+	name := strings.TrimSpace(input.Name)
+	description := strings.TrimSpace(input.Description)
+
+	if name == "" {
+		return Project{}, ErrInvalidProjectName
+	}
+
+	return s.projects.UpdateInfo(ctx, projectID, name, description)
+}
+
+func (s *Service) Delete(ctx context.Context, userID string, projectID string) error {
+	found, err := s.projects.FindByID(ctx, projectID)
+	if err != nil {
+		return err
+	}
+
+	if found.UserID != userID {
+		return ErrForbiddenProject
+	}
+
+	return s.projects.Delete(ctx, projectID)
 }

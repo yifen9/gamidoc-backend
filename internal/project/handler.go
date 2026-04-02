@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	appmiddleware "github.com/yifen9/gamidoc-backend/internal/http/middleware"
 	"github.com/yifen9/gamidoc-backend/internal/http/response"
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type Handler struct {
@@ -24,6 +26,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/", h.create)
 	r.Get("/", h.list)
 	r.Get("/{projectId}", h.get)
+	r.Put("/{projectId}/wizard/step/{stepNumber}", h.saveStep)
 
 	return r
 }
@@ -101,4 +104,56 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteJSON(w, http.StatusOK, found)
+}
+
+func (h *Handler) saveStep(w http.ResponseWriter, r *http.Request) {
+	userID := appmiddleware.GetAuthUserID(r.Context())
+	if userID == "" {
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	projectID := chi.URLParam(r, "projectId")
+	if projectID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_PROJECT_ID", "Invalid project id", nil)
+		return
+	}
+
+	stepValue := chi.URLParam(r, "stepNumber")
+	stepNumber, err := strconv.Atoi(stepValue)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_STEP_NUMBER", "Invalid step number", nil)
+		return
+	}
+
+	var input SaveStepInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
+		return
+	}
+
+	updated, err := h.service.SaveStep(r.Context(), userID, projectID, stepNumber, input.StepData)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrProjectNotFound):
+			response.WriteError(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "Project not found", nil)
+		case errors.Is(err, ErrForbiddenProject):
+			response.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Project does not belong to user", nil)
+		case errors.Is(err, wizard.ErrInvalidStepNumber):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_STEP_NUMBER", "Invalid step number", nil)
+		case errors.Is(err, wizard.ErrInvalidStepData):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_STEP_DATA", "Invalid step data", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]any{
+		"projectId":    updated.ID,
+		"stepNumber":   stepNumber,
+		"stepData":     updated.Wizard.Steps[strconv.Itoa(stepNumber)],
+		"updatedAt":    updated.UpdatedAt,
+		"wizardStatus": updated.Wizard,
+	})
 }

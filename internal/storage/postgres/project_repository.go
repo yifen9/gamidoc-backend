@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/yifen9/gamidoc-backend/internal/project"
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type ProjectRepository struct {
@@ -81,6 +82,35 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (project.Pr
 		WHERE id = $1
 		`,
 		id,
+	)
+
+	found, err := scanProject(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return project.Project{}, project.ErrProjectNotFound
+		}
+		return project.Project{}, err
+	}
+
+	return found, nil
+}
+
+func (r *ProjectRepository) UpdateWizard(ctx context.Context, projectID string, status wizard.Status) (project.Project, error) {
+	wizardData, err := json.Marshal(status)
+	if err != nil {
+		return project.Project{}, err
+	}
+
+	row := r.db.sql.QueryRowContext(
+		ctx,
+		`
+		UPDATE projects
+		SET wizard_data = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, user_id, name, description, wizard_data, pdf_url, created_at, updated_at
+		`,
+		projectID,
+		wizardData,
 	)
 
 	found, err := scanProject(row)

@@ -17,6 +17,7 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/session"
 	"github.com/yifen9/gamidoc-backend/internal/token"
 	"github.com/yifen9/gamidoc-backend/internal/user"
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type fakePostgres struct {
@@ -103,6 +104,22 @@ func (r *fakeProjectRepository) FindByID(ctx context.Context, id string) (projec
 	return item, nil
 }
 
+func (r *fakeProjectRepository) UpdateWizard(ctx context.Context, projectID string, status wizard.Status) (project.Project, error) {
+	item, ok := r.byID[projectID]
+	if !ok {
+		return project.Project{}, project.ErrProjectNotFound
+	}
+	item.Wizard = status
+	item.UpdatedAt = time.Now()
+	r.byID[projectID] = item
+	for i := range r.items {
+		if r.items[i].ID == projectID {
+			r.items[i] = item
+		}
+	}
+	return item, nil
+}
+
 type fakeSessionRepository struct {
 	byID map[string]session.Session
 }
@@ -120,6 +137,16 @@ func (r *fakeSessionRepository) FindByID(ctx context.Context, id string) (sessio
 	if !ok {
 		return session.Session{}, session.ErrSessionNotFound
 	}
+	return item, nil
+}
+
+func (r *fakeSessionRepository) UpdateWizard(ctx context.Context, id string, status wizard.Status) (session.Session, error) {
+	item, ok := r.byID[id]
+	if !ok {
+		return session.Session{}, session.ErrSessionNotFound
+	}
+	item.Wizard = status
+	r.byID[id] = item
 	return item, nil
 }
 
@@ -143,7 +170,7 @@ func testProjectHandler() *project.Handler {
 		items: []project.Project{},
 		byID:  map[string]project.Project{},
 	}
-	service := project.NewService(repo)
+	service := project.NewService(repo, wizard.NewService())
 	return project.NewHandler(service)
 }
 
@@ -151,7 +178,7 @@ func testSessionHandler() *session.Handler {
 	repo := &fakeSessionRepository{
 		byID: map[string]session.Session{},
 	}
-	service := session.NewService(repo, 48*time.Hour)
+	service := session.NewService(repo, 48*time.Hour, wizard.NewService())
 	return session.NewHandler(service)
 }
 
@@ -312,5 +339,77 @@ func TestCreateProjectRoute(t *testing.T) {
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected status %d, got %d", http.StatusCreated, rec.Code)
+	}
+}
+
+func TestSaveSessionStepRoute(t *testing.T) {
+	handler := testSessionHandler()
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/sessions/create", nil)
+	createRec := httptest.NewRecorder()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		SessionHandler: handler,
+	})
+
+	router.ServeHTTP(createRec, createReq)
+
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, createRec.Code)
+	}
+
+	var created session.Session
+	if err := jsonNewDecoder(createRec.Body.String(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	body := `{"stepData":{"evaluationGoals":["Usability"]}}`
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/sessions/"+created.ID+"/wizard/step/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+}
+
+func TestSaveProjectStepRoute(t *testing.T) {
+	tokenValue := authToken()
+	handler := testProjectHandler()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		ProjectHandler: handler,
+	})
+
+	createBody := `{"name":"My Project","description":"Test"}`
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/projects", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+tokenValue)
+	createRec := httptest.NewRecorder()
+
+	router.ServeHTTP(createRec, createReq)
+
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, createRec.Code)
+	}
+
+	var created project.Project
+	if err := jsonNewDecoder(createRec.Body.String(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	body := `{"stepData":{"evaluationGoals":["Usability"]}}`
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/projects/"+created.ID+"/wizard/step/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenValue)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
 	}
 }

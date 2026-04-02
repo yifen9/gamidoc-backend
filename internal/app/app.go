@@ -14,6 +14,7 @@ import (
 	"github.com/yifen9/gamidoc-backend/internal/storage/postgres"
 	rediscache "github.com/yifen9/gamidoc-backend/internal/storage/redis"
 	"github.com/yifen9/gamidoc-backend/internal/token"
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type App struct {
@@ -36,16 +37,18 @@ func New(cfg config.Config) (*App, error) {
 	tokenManager := token.NewManager(cfg.JWTSecret, cfg.JWTExpiresIn)
 	appmiddleware.SetTokenManager(tokenManager)
 
+	wizardService := wizard.NewService()
+
 	userRepository := postgres.NewUserRepository(pg)
 	authService := auth.NewService(userRepository, tokenManager)
 	authHandler := auth.NewHandler(authService)
 
 	projectRepository := postgres.NewProjectRepository(pg)
-	projectService := project.NewService(projectRepository)
+	projectService := project.NewService(projectRepository, wizardService)
 	projectHandler := project.NewHandler(projectService)
 
 	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
-	sessionService := session.NewService(sessionRepository, cfg.SessionTTL)
+	sessionService := session.NewService(sessionRepository, cfg.SessionTTL, wizardService)
 	sessionHandler := session.NewHandler(sessionService)
 
 	application := &App{

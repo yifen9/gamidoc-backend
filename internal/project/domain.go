@@ -1,31 +1,22 @@
 package project
 
 import (
-	"encoding/json"
 	"time"
+
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
-type WizardStatus struct {
-	CurrentStep int                        `json:"currentStep"`
-	IsComplete  bool                       `json:"isComplete"`
-	Steps       map[string]json.RawMessage `json:"steps"`
-}
-
 type Project struct {
-	ID          string       `json:"projectId"`
-	UserID      string       `json:"-"`
-	Name        string       `json:"name"`
-	Description string       `json:"description,omitempty"`
-	Wizard      WizardStatus `json:"wizardStatus"`
-	PDFURL      *string      `json:"pdfUrl"`
-	CreatedAt   time.Time    `json:"createdAt"`
-	UpdatedAt   time.Time    `json:"updatedAt"`
+	ID          string        `json:"projectId"`
+	UserID      string        `json:"-"`
+	Name        string        `json:"name"`
+	Description string        `json:"description,omitempty"`
+	Wizard      wizard.Status `json:"wizardStatus"`
+	PDFURL      *string       `json:"pdfUrl"`
+	CreatedAt   time.Time     `json:"createdAt"`
+	UpdatedAt   time.Time     `json:"updatedAt"`
 }
 
-func NewInitialWizardStatus() WizardStatus {
-	return WizardStatus{
-		CurrentStep: 1,
-		IsComplete:  false,
-		Steps:       map[string]json.RawMessage{},
-	}
+func NewInitialWizardStatus() wizard.Status {
+	return wizard.NewInitialStatus()
 }

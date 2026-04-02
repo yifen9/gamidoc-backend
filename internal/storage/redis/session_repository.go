@@ -8,6 +8,7 @@ import (
 
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/yifen9/gamidoc-backend/internal/session"
+	"github.com/yifen9/gamidoc-backend/internal/wizard"
 )
 
 type SessionRepository struct {
@@ -49,6 +50,27 @@ func (r *SessionRepository) FindByID(ctx context.Context, id string) (session.Se
 
 	var found session.Session
 	if err := json.Unmarshal([]byte(value), &found); err != nil {
+		return session.Session{}, err
+	}
+
+	return found, nil
+}
+
+func (r *SessionRepository) UpdateWizard(ctx context.Context, id string, status wizard.Status) (session.Session, error) {
+	found, err := r.FindByID(ctx, id)
+	if err != nil {
+		return session.Session{}, err
+	}
+
+	found.Wizard = status
+
+	payload, err := json.Marshal(found)
+	if err != nil {
+		return session.Session{}, err
+	}
+
+	key := r.key(id)
+	if err := r.client.Raw().Set(ctx, key, payload, r.ttl).Err(); err != nil {
 		return session.Session{}, err
 	}
 

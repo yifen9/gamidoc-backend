@@ -89,6 +89,7 @@ func New(cfg config.Config) (*App, error) {
 		_ = redisClient.Close()
 		return nil, err
 	}
+	projectService.WithPDFCleaner(store)
 
 	m, err := bootstrap.NewMailer(cfg)
 	if err != nil {

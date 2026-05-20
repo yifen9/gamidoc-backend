@@ -34,6 +34,19 @@ func (s *fakeObjectStore) Read(ctx context.Context, key string) ([]byte, error) 
 	return value, nil
 }
 
+func (s *fakeObjectStore) Delete(ctx context.Context, key string) error {
+	delete(s.items, key)
+	return nil
+}
+
+func (s *fakeObjectStore) KeyFromURL(url string) (string, bool) {
+	const prefix = "/files/pdfs/"
+	if len(url) <= len(prefix) || url[:len(prefix)] != prefix {
+		return "", false
+	}
+	return url[len(prefix):], true
+}
+
 type fakeMailer struct {
 	sendErr error
 	result  mailer.SendResult

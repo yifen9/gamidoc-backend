@@ -128,11 +128,14 @@ func NewRouter(deps Dependencies) http.Handler {
 		if deps.SessionHandler != nil {
 			r.Mount("/sessions", deps.SessionHandler.Routes())
 			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/sessions/{sessionId}/convert", deps.SessionHandler.Convert)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/sessions/{sessionId}/convert-to-project", deps.SessionHandler.Convert)
 		}
 
 		if deps.PDFHandler != nil {
 			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
 			r.Post("/sessions/{sessionId}/generate-pdf", deps.PDFHandler.SessionGenerate)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Get("/projects/{projectId}/download-pdf", deps.PDFHandler.ProjectDownload)
+			r.Get("/sessions/{sessionId}/download-pdf", deps.PDFHandler.SessionDownload)
 		}
 	})
 

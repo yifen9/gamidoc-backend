@@ -103,6 +103,66 @@ func (h *Handler) SessionGenerate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) ProjectDownload(w http.ResponseWriter, r *http.Request) {
+	userID := appmiddleware.GetAuthUserID(r.Context())
+	if userID == "" {
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+		return
+	}
+
+	projectID := chi.URLParam(r, "projectId")
+	if projectID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_PROJECT_ID", "Invalid project id", nil)
+		return
+	}
+
+	data, err := h.service.DownloadProjectPDF(r.Context(), userID, projectID)
+	if err != nil {
+		switch {
+		case errors.Is(err, project.ErrProjectNotFound):
+			response.WriteError(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "Project not found", nil)
+		case errors.Is(err, project.ErrForbiddenProject):
+			response.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Project does not belong to user", nil)
+		case errors.Is(err, ErrPDFNotFound):
+			response.WriteError(w, http.StatusNotFound, "PDF_NOT_FOUND", "PDF not yet generated", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="evaluation-plan.pdf"`)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
+func (h *Handler) SessionDownload(w http.ResponseWriter, r *http.Request) {
+	sessionID := chi.URLParam(r, "sessionId")
+	if sessionID == "" {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_SESSION_ID", "Invalid session id", nil)
+		return
+	}
+
+	data, err := h.service.DownloadSessionPDF(r.Context(), sessionID)
+	if err != nil {
+		switch {
+		case errors.Is(err, session.ErrSessionNotFound):
+			response.WriteError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found or expired", nil)
+		case errors.Is(err, ErrPDFNotFound):
+			response.WriteError(w, http.StatusNotFound, "PDF_NOT_FOUND", "PDF not yet generated", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="evaluation-plan.pdf"`)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
 func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "*")
 	key = strings.TrimLeft(key, "/")

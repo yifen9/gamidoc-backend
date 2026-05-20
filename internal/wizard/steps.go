@@ -14,6 +14,17 @@ type Step1Data struct {
 	ProjectType      string   `json:"projectType"`
 	Participants     string   `json:"participants"`
 	DevelopmentStage string   `json:"developmentStage"`
+
+	// Constraints (optional)
+	Accessibility    string   `json:"accessibility,omitempty"`
+	Time             string   `json:"time,omitempty"`
+	ExtraConstraints []string `json:"extraConstraints,omitempty"`
+
+	// Research specification (optional)
+	ResearchEnabled   bool     `json:"researchEnabled,omitempty"`
+	ResearchObjective string   `json:"researchObjective,omitempty"`
+	ResearchQuestions []string `json:"researchQuestions,omitempty"`
+	Hypotheses        []string `json:"hypotheses,omitempty"`
 }
 
 type Step2Data struct {

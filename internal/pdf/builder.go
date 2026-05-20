@@ -28,6 +28,13 @@ func (b *Builder) build(title string, createdAt time.Time, status wizard.Status,
 	var projectType string
 	var participants string
 	var developmentStage string
+	var accessibility string
+	var timeConstraint string
+	var extraConstraints []string
+	var researchEnabled bool
+	var researchObjective string
+	var researchQuestions []string
+	var hypotheses []string
 	var selectedMethods []MethodEntry
 	var selectedInstruments []InstrumentEntry
 	var nextSteps []string
@@ -38,6 +45,13 @@ func (b *Builder) build(title string, createdAt time.Time, status wizard.Status,
 		projectType = step1.ProjectType
 		participants = step1.Participants
 		developmentStage = step1.DevelopmentStage
+		accessibility = step1.Accessibility
+		timeConstraint = step1.Time
+		extraConstraints = step1.ExtraConstraints
+		researchEnabled = step1.ResearchEnabled
+		researchObjective = step1.ResearchObjective
+		researchQuestions = step1.ResearchQuestions
+		hypotheses = step1.Hypotheses
 	}
 
 	if step2, ok := wizard.DecodeStep2(status); ok {
@@ -62,6 +76,13 @@ func (b *Builder) build(title string, createdAt time.Time, status wizard.Status,
 		ProjectType:         projectType,
 		Participants:        participants,
 		DevelopmentStage:    developmentStage,
+		Accessibility:       accessibility,
+		TimeConstraint:      timeConstraint,
+		ExtraConstraints:    extraConstraints,
+		ResearchEnabled:     researchEnabled,
+		ResearchObjective:   researchObjective,
+		ResearchQuestions:   researchQuestions,
+		Hypotheses:          hypotheses,
 		SelectedMethods:     selectedMethods,
 		SelectedInstruments: selectedInstruments,
 		NextSteps:           nextSteps,

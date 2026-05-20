@@ -31,6 +31,10 @@ func (g *FPDFGenerator) Generate(data PlanData) ([]byte, error) {
 	doc.Ln(10)
 
 	writeContextSection(doc, data)
+	writeConstraintsSection(doc, data)
+	if data.ResearchEnabled {
+		writeResearchSection(doc, data)
+	}
 	writeMethodsSection(doc, data.SelectedMethods)
 	writeInstrumentsSection(doc, data.SelectedInstruments)
 	writeSimpleSection(doc, "Next Steps", data.NextSteps)
@@ -62,6 +66,58 @@ func writeContextSection(doc *fpdf.Fpdf, data PlanData) {
 	doc.MultiCell(0, 6, "Project Type: "+valueOrNone(data.ProjectType), "", "L", false)
 	doc.MultiCell(0, 6, "Participants: "+valueOrNone(data.Participants), "", "L", false)
 	doc.MultiCell(0, 6, "Development Stage: "+valueOrNone(data.DevelopmentStage), "", "L", false)
+	doc.Ln(2)
+}
+
+func writeConstraintsSection(doc *fpdf.Fpdf, data PlanData) {
+	hasAccessibility := strings.TrimSpace(data.Accessibility) != ""
+	hasTime := strings.TrimSpace(data.TimeConstraint) != ""
+	hasExtra := len(data.ExtraConstraints) > 0
+	if !hasAccessibility && !hasTime && !hasExtra {
+		return
+	}
+
+	doc.SetFont("Arial", "B", 13)
+	doc.Cell(0, 8, "Constraints")
+	doc.Ln(9)
+	doc.SetFont("Arial", "", 11)
+	if hasAccessibility {
+		doc.MultiCell(0, 6, "User Accessibility: "+data.Accessibility, "", "L", false)
+	}
+	if hasTime {
+		doc.MultiCell(0, 6, "Available Time: "+data.TimeConstraint, "", "L", false)
+	}
+	if hasExtra {
+		doc.MultiCell(0, 6, "Additional Constraints: "+strings.Join(data.ExtraConstraints, ", "), "", "L", false)
+	}
+	doc.Ln(2)
+}
+
+func writeResearchSection(doc *fpdf.Fpdf, data PlanData) {
+	doc.SetFont("Arial", "B", 13)
+	doc.Cell(0, 8, "Research Specification")
+	doc.Ln(9)
+	doc.SetFont("Arial", "", 11)
+
+	if strings.TrimSpace(data.ResearchObjective) != "" {
+		doc.MultiCell(0, 6, "Objective: "+data.ResearchObjective, "", "L", false)
+	}
+	if len(data.ResearchQuestions) > 0 {
+		doc.MultiCell(0, 6, "Research Questions:", "", "L", false)
+		for i, rq := range data.ResearchQuestions {
+			if strings.TrimSpace(rq) != "" {
+				doc.MultiCell(0, 6, fmt.Sprintf("  RQ%d: %s", i+1, rq), "", "L", false)
+			}
+		}
+	}
+	if len(data.Hypotheses) > 0 {
+		doc.MultiCell(0, 6, "Hypotheses:", "", "L", false)
+		for i, h := range data.Hypotheses {
+			if strings.TrimSpace(h) != "" {
+				doc.MultiCell(0, 6, fmt.Sprintf("  H%d: %s", i+1, h), "", "L", false)
+			}
+		}
+	}
 	doc.Ln(2)
 }
 

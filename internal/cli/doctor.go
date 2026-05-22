@@ -60,7 +60,7 @@ func newDoctorCommand() *cobra.Command {
 				return db.Ready(ctx)
 			})
 			check("redis", func() error {
-				client := rediscache.New(cfg.RedisAddr())
+				client := rediscache.New(cfg.RedisAddr(), cfg.RedisPassword, cfg.RedisTLS)
 				defer func() {
 					_ = client.Close()
 				}()

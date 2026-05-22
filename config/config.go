@@ -31,8 +31,10 @@ type Config struct {
 	PostgresPassword string
 	PostgresSSLMode  string
 
-	RedisHost string
-	RedisPort string
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisTLS      bool
 
 	JWTSecret    string
 	JWTExpiresIn time.Duration
@@ -81,6 +83,8 @@ func Load() Config {
 		PostgresSSLMode:                getEnv("POSTGRES_SSLMODE", "disable"),
 		RedisHost:                      getEnv("REDIS_HOST", "localhost"),
 		RedisPort:                      getEnv("REDIS_PORT", "6379"),
+		RedisPassword:                  getEnv("REDIS_PASSWORD", ""),
+		RedisTLS:                       getEnvBool("REDIS_TLS", false),
 		JWTSecret:                      getEnv("JWT_SECRET", "dev-secret"),
 		JWTExpiresIn:                   expiresIn,
 		SessionTTL:                     sessionTTL,

@@ -41,7 +41,7 @@ func New(cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
-	redisClient := rediscache.New(cfg.RedisAddr())
+	redisClient := rediscache.New(cfg.RedisAddr(), cfg.RedisPassword, cfg.RedisTLS)
 
 	startupCtx, cancel := context.WithTimeout(context.Background(), cfg.HTTPReadTimeout)
 	defer cancel()

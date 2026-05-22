@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"crypto/tls"
 
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -10,11 +11,15 @@ type Client struct {
 	redis *goredis.Client
 }
 
-func New(addr string) *Client {
-	client := goredis.NewClient(&goredis.Options{
-		Addr: addr,
-	})
-	return &Client{redis: client}
+func New(addr, password string, useTLS bool) *Client {
+	opts := &goredis.Options{
+		Addr:     addr,
+		Password: password,
+	}
+	if useTLS {
+		opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+	return &Client{redis: goredis.NewClient(opts)}
 }
 
 func (c *Client) Ping(ctx context.Context) error {

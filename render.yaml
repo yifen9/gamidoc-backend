@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gamidoc-backend
+    runtime: go
+    buildCommand: go build -o app ./cmd/gamidoc-backend/
+    startCommand: ./app serve
+    envVars:
+      - key: APP_ENV
+        value: production

@@ -18,18 +18,42 @@ func NewFPDFGenerator() *FPDFGenerator {
 	return &FPDFGenerator{}
 }
 
+const (
+	lMargin    = 20.0
+	rMargin    = 20.0
+	pageW      = 210.0
+	usableW    = pageW - lMargin - rMargin // 170mm
+	cardIndent = 5.0
+	cardW      = usableW - cardIndent // 165mm
+)
+
+// color helpers
+func setFill(doc *fpdf.Fpdf, r, g, b int) { doc.SetFillColor(r, g, b) }
+func setDraw(doc *fpdf.Fpdf, r, g, b int) { doc.SetDrawColor(r, g, b) }
+func setText(doc *fpdf.Fpdf, r, g, b int) { doc.SetTextColor(r, g, b) }
+
 func (g *FPDFGenerator) Generate(data PlanData) ([]byte, error) {
 	doc := fpdf.New("P", "mm", "A4", "")
+	doc.SetMargins(lMargin, 20, rMargin)
+	doc.SetAutoPageBreak(true, 18)
 	doc.SetTitle(data.Title, false)
+	doc.SetAuthor("GamiDoc", false)
+	doc.SetCreator("GamiDoc", false)
+
+	doc.SetFooterFunc(func() {
+		doc.SetY(-14)
+		setDraw(doc, 180, 200, 220)
+		doc.Line(lMargin, doc.GetY(), pageW-rMargin, doc.GetY())
+		doc.Ln(2)
+		doc.SetFont("Arial", "", 8)
+		setText(doc, 120, 120, 120)
+		doc.CellFormat(usableW/2, 5, "GamiDoc - Evaluation Plan", "", 0, "L", false, 0, "")
+		doc.CellFormat(usableW/2, 5, fmt.Sprintf("Page %d", doc.PageNo()), "", 0, "R", false, 0, "")
+	})
+
 	doc.AddPage()
-	doc.SetFont("Arial", "B", 16)
-	doc.Cell(0, 10, data.Title)
-	doc.Ln(12)
 
-	doc.SetFont("Arial", "", 11)
-	doc.Cell(0, 8, "Date: "+data.Date.Format("2006-01-02 15:04:05"))
-	doc.Ln(10)
-
+	writeTitleBlock(doc, data)
 	writeContextSection(doc, data)
 	writeConstraintsSection(doc, data)
 	if data.ResearchEnabled {
@@ -38,35 +62,62 @@ func (g *FPDFGenerator) Generate(data PlanData) ([]byte, error) {
 	writeMethodsSection(doc, data.SelectedMethods)
 	writeInstrumentsSection(doc, data.SelectedInstruments)
 	writeSimpleSection(doc, "Next Steps", data.NextSteps)
-
 	if strings.TrimSpace(data.Notes) != "" {
-		doc.SetFont("Arial", "B", 13)
-		doc.Cell(0, 8, "Notes")
-		doc.Ln(9)
-		doc.SetFont("Arial", "", 11)
-		doc.MultiCell(0, 6, data.Notes, "", "L", false)
-		doc.Ln(2)
+		writeNotesSection(doc, data.Notes)
 	}
 
 	var buf bytes.Buffer
 	if err := doc.Output(&buf); err != nil {
 		return nil, err
 	}
-
 	return buf.Bytes(), nil
 }
 
-func writeContextSection(doc *fpdf.Fpdf, data PlanData) {
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, "Evaluation Context")
-	doc.Ln(9)
+func writeTitleBlock(doc *fpdf.Fpdf, data PlanData) {
+	// Navy banner — title
+	setFill(doc, 42, 87, 141)
+	setText(doc, 255, 255, 255)
+	doc.SetFont("Arial", "B", 20)
+	doc.CellFormat(0, 14, data.Title, "", 1, "C", true, 0, "")
 
+	// Slightly lighter subtitle bar
+	setFill(doc, 60, 110, 170)
+	doc.SetFont("Arial", "", 10)
+	doc.CellFormat(0, 7, "Evaluation Plan - "+data.Date.Format("January 2, 2006"), "", 1, "C", true, 0, "")
+
+	setText(doc, 30, 30, 30)
+	doc.Ln(7)
+}
+
+// sectionHeader draws a light-blue filled bar with a navy left+bottom border.
+func sectionHeader(doc *fpdf.Fpdf, title string) {
+	setFill(doc, 235, 243, 252)
+	setDraw(doc, 42, 87, 141)
+	setText(doc, 42, 87, 141)
+	doc.SetFont("Arial", "B", 12)
+	doc.CellFormat(0, 9, "  "+title, "LB", 1, "L", true, 0, "")
+	setText(doc, 30, 30, 30)
+	setDraw(doc, 200, 214, 229)
+	doc.Ln(3)
+}
+
+// writeKV renders a small uppercase label then the value in normal text below it.
+func writeKV(doc *fpdf.Fpdf, key, value string) {
+	doc.SetFont("Arial", "B", 8)
+	setText(doc, 110, 110, 110)
+	doc.CellFormat(0, 5, strings.ToUpper(key), "", 1, "L", false, 0, "")
 	doc.SetFont("Arial", "", 11)
-	doc.MultiCell(0, 6, "Evaluation Goals: "+joinOrNone(data.EvaluationGoals), "", "L", false)
-	doc.MultiCell(0, 6, "Project Type: "+valueOrNone(data.ProjectType), "", "L", false)
-	doc.MultiCell(0, 6, "Participants: "+valueOrNone(data.Participants), "", "L", false)
-	doc.MultiCell(0, 6, "Development Stage: "+valueOrNone(data.DevelopmentStage), "", "L", false)
+	setText(doc, 30, 30, 30)
+	doc.MultiCell(0, 6, value, "", "L", false)
 	doc.Ln(2)
+}
+
+func writeContextSection(doc *fpdf.Fpdf, data PlanData) {
+	sectionHeader(doc, "Evaluation Context")
+	writeKV(doc, "Evaluation Goals", joinOrNone(data.EvaluationGoals))
+	writeKV(doc, "Project Type", valueOrNone(data.ProjectType))
+	writeKV(doc, "Participants", valueOrNone(data.Participants))
+	writeKV(doc, "Development Stage", valueOrNone(data.DevelopmentStage))
 }
 
 func writeConstraintsSection(doc *fpdf.Fpdf, data PlanData) {
@@ -77,134 +128,205 @@ func writeConstraintsSection(doc *fpdf.Fpdf, data PlanData) {
 		return
 	}
 
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, "Constraints")
-	doc.Ln(9)
-	doc.SetFont("Arial", "", 11)
+	sectionHeader(doc, "Constraints")
 	if hasAccessibility {
-		doc.MultiCell(0, 6, "User Accessibility: "+data.Accessibility, "", "L", false)
+		writeKV(doc, "User Accessibility", data.Accessibility)
 	}
 	if hasTime {
-		doc.MultiCell(0, 6, "Available Time: "+data.TimeConstraint, "", "L", false)
+		writeKV(doc, "Available Time", data.TimeConstraint)
 	}
 	if hasExtra {
-		doc.MultiCell(0, 6, "Additional Constraints: "+strings.Join(data.ExtraConstraints, ", "), "", "L", false)
+		writeKV(doc, "Additional Constraints", strings.Join(data.ExtraConstraints, "; "))
 	}
-	doc.Ln(2)
 }
 
 func writeResearchSection(doc *fpdf.Fpdf, data PlanData) {
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, "Research Specification")
-	doc.Ln(9)
-	doc.SetFont("Arial", "", 11)
+	sectionHeader(doc, "Research Specification")
 
 	if strings.TrimSpace(data.ResearchObjective) != "" {
-		doc.MultiCell(0, 6, "Objective: "+data.ResearchObjective, "", "L", false)
+		writeKV(doc, "Research Objective", data.ResearchObjective)
 	}
-	if len(data.ResearchQuestions) > 0 {
-		doc.MultiCell(0, 6, "Research Questions:", "", "L", false)
+
+	if hasContent(data.ResearchQuestions) {
+		doc.SetFont("Arial", "B", 8)
+		setText(doc, 110, 110, 110)
+		doc.CellFormat(0, 5, "RESEARCH QUESTIONS", "", 1, "L", false, 0, "")
+		doc.Ln(1)
 		for i, rq := range data.ResearchQuestions {
 			if strings.TrimSpace(rq) != "" {
-				doc.MultiCell(0, 6, fmt.Sprintf("  RQ%d: %s", i+1, rq), "", "L", false)
+				writeNumberedItem(doc, fmt.Sprintf("RQ%d", i+1), rq)
 			}
 		}
+		doc.Ln(2)
 	}
-	if len(data.Hypotheses) > 0 {
-		doc.MultiCell(0, 6, "Hypotheses:", "", "L", false)
+
+	if hasContent(data.Hypotheses) {
+		doc.SetFont("Arial", "B", 8)
+		setText(doc, 110, 110, 110)
+		doc.CellFormat(0, 5, "HYPOTHESES", "", 1, "L", false, 0, "")
+		doc.Ln(1)
 		for i, h := range data.Hypotheses {
 			if strings.TrimSpace(h) != "" {
-				doc.MultiCell(0, 6, fmt.Sprintf("  H%d: %s", i+1, h), "", "L", false)
+				writeNumberedItem(doc, fmt.Sprintf("H%d", i+1), h)
 			}
 		}
+		doc.Ln(2)
 	}
-	doc.Ln(2)
+}
+
+// writeNumberedItem renders "RQ1" / "H1" inline with the text.
+// SetLeftMargin ensures wrapped lines align with the text start, not the label.
+func writeNumberedItem(doc *fpdf.Fpdf, label, text string) {
+	const labelW = 13.0
+
+	doc.SetFont("Arial", "B", 10)
+	setText(doc, 42, 87, 141)
+	doc.CellFormat(labelW, 6, label, "", 0, "L", false, 0, "")
+
+	doc.SetLeftMargin(lMargin + labelW)
+	doc.SetFont("Arial", "", 10)
+	setText(doc, 30, 30, 30)
+	doc.MultiCell(usableW-labelW, 6, strings.TrimSpace(text), "", "L", false)
+	doc.SetLeftMargin(lMargin)
+	doc.SetX(lMargin)
+	doc.Ln(1)
 }
 
 func writeMethodsSection(doc *fpdf.Fpdf, items []MethodEntry) {
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, "Selected Methods")
-	doc.Ln(9)
-
-	doc.SetFont("Arial", "", 11)
+	sectionHeader(doc, "Selected Evaluation Methods")
 	if len(items) == 0 {
-		doc.MultiCell(0, 6, "- None", "", "L", false)
-		doc.Ln(2)
+		writeEmpty(doc, "No methods selected.")
 		return
 	}
-
 	for _, item := range items {
-		lines := []string{fmt.Sprintf("- %s", strings.TrimSpace(item.Name))}
-		if strings.TrimSpace(item.Description) != "" {
-			lines = append(lines, "  Description: "+item.Description)
-		}
-		if strings.TrimSpace(item.Priority) != "" {
-			lines = append(lines, "  Priority: "+item.Priority)
-		}
-		if strings.TrimSpace(item.Rationale) != "" {
-			lines = append(lines, "  Rationale: "+item.Rationale)
-		}
-		doc.MultiCell(0, 6, strings.Join(lines, "\n"), "", "L", false)
+		writeEntryCard(doc, item.Name, item.Description, item.Priority, item.Rationale)
 	}
-	doc.Ln(2)
 }
 
 func writeInstrumentsSection(doc *fpdf.Fpdf, items []InstrumentEntry) {
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, "Recommended Instruments")
-	doc.Ln(9)
-
-	doc.SetFont("Arial", "", 11)
+	sectionHeader(doc, "Recommended Instruments")
 	if len(items) == 0 {
-		doc.MultiCell(0, 6, "- None", "", "L", false)
-		doc.Ln(2)
+		writeEmpty(doc, "No instruments selected.")
 		return
 	}
-
 	for _, item := range items {
-		lines := []string{fmt.Sprintf("- %s", strings.TrimSpace(item.Name))}
-		if strings.TrimSpace(item.Description) != "" {
-			lines = append(lines, "  Description: "+item.Description)
+		writeEntryCard(doc, item.Name, item.Description, item.Priority, item.Rationale)
+	}
+}
+
+// writeEntryCard renders a method or instrument with a navy left accent bar.
+// SetLeftMargin(lMargin+cardIndent) ensures MultiCell wrapping stays indented.
+// The accent bar is skipped when content crosses a page break to avoid drawing
+// a line that spans from the wrong Y coordinate on the new page.
+func writeEntryCard(doc *fpdf.Fpdf, name, description, priority, rationale string) {
+	startPage := doc.PageNo()
+	startY := doc.GetY()
+	doc.SetLeftMargin(lMargin + cardIndent)
+
+	// Name
+	doc.SetFont("Arial", "B", 11)
+	setText(doc, 42, 87, 141)
+	doc.MultiCell(cardW, 7, strings.TrimSpace(name), "", "L", false)
+
+	// Description
+	if strings.TrimSpace(description) != "" {
+		doc.SetFont("Arial", "", 10)
+		setText(doc, 30, 30, 30)
+		doc.MultiCell(cardW, 5, strings.TrimSpace(description), "", "L", false)
+	}
+
+	// Priority | Rationale (italic, gray)
+	var meta []string
+	if strings.TrimSpace(priority) != "" {
+		meta = append(meta, "Priority: "+strings.TrimSpace(priority))
+	}
+	if strings.TrimSpace(rationale) != "" {
+		meta = append(meta, "Rationale: "+strings.TrimSpace(rationale))
+	}
+	if len(meta) > 0 {
+		doc.SetFont("Arial", "I", 9)
+		setText(doc, 110, 110, 110)
+		doc.MultiCell(cardW, 5, strings.Join(meta, "  |  "), "", "L", false)
+	}
+
+	endY := doc.GetY()
+	endPage := doc.PageNo()
+	doc.SetLeftMargin(lMargin)
+	doc.SetX(lMargin)
+
+	// Left accent bar: only draw when the card stays on a single page.
+	if startPage == endPage {
+		setDraw(doc, 42, 87, 141)
+		doc.Line(lMargin, startY, lMargin, endY)
+	}
+
+	// Bottom separator (pale blue-gray) — always drawn on the current page.
+	setDraw(doc, 200, 214, 229)
+	doc.Line(lMargin+cardIndent, endY, lMargin+cardIndent+cardW, endY)
+
+	setText(doc, 30, 30, 30)
+	doc.Ln(5)
+}
+
+func writeSimpleSection(doc *fpdf.Fpdf, title string, items []string) {
+	sectionHeader(doc, title)
+	if len(items) == 0 {
+		writeEmpty(doc, "None specified.")
+		return
+	}
+	const bulletW = 6.0
+	for _, item := range items {
+		if strings.TrimSpace(item) == "" {
+			continue
 		}
-		if strings.TrimSpace(item.Priority) != "" {
-			lines = append(lines, "  Priority: "+item.Priority)
-		}
-		if strings.TrimSpace(item.Rationale) != "" {
-			lines = append(lines, "  Rationale: "+item.Rationale)
-		}
-		doc.MultiCell(0, 6, strings.Join(lines, "\n"), "", "L", false)
+		doc.SetFont("Arial", "B", 11)
+		setText(doc, 42, 87, 141)
+		doc.CellFormat(bulletW, 6, "-", "", 0, "R", false, 0, "")
+		doc.SetLeftMargin(lMargin + bulletW)
+		doc.SetFont("Arial", "", 11)
+		setText(doc, 30, 30, 30)
+		doc.MultiCell(usableW-bulletW, 6, strings.TrimSpace(item), "", "L", false)
+		doc.SetLeftMargin(lMargin)
+		doc.SetX(lMargin)
 	}
 	doc.Ln(2)
 }
 
-func writeSimpleSection(doc *fpdf.Fpdf, title string, items []string) {
-	doc.SetFont("Arial", "B", 13)
-	doc.Cell(0, 8, title)
-	doc.Ln(9)
-
+func writeNotesSection(doc *fpdf.Fpdf, notes string) {
+	sectionHeader(doc, "Notes")
 	doc.SetFont("Arial", "", 11)
-	if len(items) == 0 {
-		doc.MultiCell(0, 6, "- None", "", "L", false)
-		doc.Ln(2)
-		return
-	}
-
-	for _, item := range items {
-		doc.MultiCell(0, 6, "- "+strings.TrimSpace(item), "", "L", false)
-	}
+	setText(doc, 30, 30, 30)
+	doc.MultiCell(0, 6, strings.TrimSpace(notes), "", "L", false)
 	doc.Ln(2)
+}
+
+func writeEmpty(doc *fpdf.Fpdf, msg string) {
+	doc.SetFont("Arial", "I", 10)
+	setText(doc, 130, 130, 130)
+	doc.CellFormat(0, 6, msg, "", 1, "L", false, 0, "")
+	setText(doc, 30, 30, 30)
+	doc.Ln(2)
+}
+
+func hasContent(items []string) bool {
+	for _, s := range items {
+		if strings.TrimSpace(s) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func valueOrNone(value string) string {
 	if strings.TrimSpace(value) == "" {
-		return "None"
+		return "-"
 	}
 	return value
 }
 
 func joinOrNone(items []string) string {
 	if len(items) == 0 {
-		return "None"
+		return "-"
 	}
 	return strings.Join(items, ", ")
 }

@@ -1,7 +1,7 @@
 [
   {
     "forStep": 2,
-    "requiredEvaluationGoals": ["Usability & Playability"],
+    "requiredEvaluationGoals": ["Usability & Efficiency"],
     "requiredProjectTypes": [],
     "requiredParticipants": [],
     "requiredDevelopmentStages": [],
@@ -10,16 +10,16 @@
       {
         "id": "think-aloud",
         "name": "Think-aloud testing",
-        "description": "Users verbalize thoughts while interacting with the system",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
         "priority": "Recommended",
-        "rationale": "Useful for early usability evaluation with limited participants"
+        "rationale": "Direct observation of user interactions is ideal for identifying efficiency and usability problems."
       },
       {
         "id": "surveys",
         "name": "Surveys & Questionnaires",
-        "description": "Collect structured user feedback through questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
         "priority": "Recommended",
-        "rationale": "Helpful for measuring perceived usability and satisfaction"
+        "rationale": "Validated usability scales complement observational data with measurable user perceptions."
       }
     ]
   },
@@ -34,36 +34,552 @@
       {
         "id": "heuristic-evaluation",
         "name": "Heuristic evaluation",
-        "description": "Experts inspect the interface against established usability principles",
+        "description": "Experts inspect the interface against established usability principles to identify design problems.",
         "priority": "Recommended",
-        "rationale": "Useful for identifying guidance and feedback issues early"
+        "rationale": "Heuristic evaluation efficiently uncovers guidance and feedback issues without requiring user recruitment."
       },
       {
         "id": "surveys",
         "name": "Surveys & Questionnaires",
-        "description": "Collect structured user feedback through questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
         "priority": "Engagement",
-        "rationale": "Can complement expert-based findings with user perceptions"
+        "rationale": "Questionnaires can complement expert findings with user-perceived feedback quality measures."
       }
     ]
   },
   {
     "forStep": 2,
-    "requiredEvaluationGoals": ["Usability & Playability"],
-    "requiredProjectTypes": ["Concept test"],
-    "requiredParticipants": ["Limited set of participants"],
-    "requiredDevelopmentStages": ["Concept idea"],
+    "requiredEvaluationGoals": ["Usability & Efficiency"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["< 10"],
+    "requiredDevelopmentStages": ["Concept / idea"],
     "requiredMethods": [],
     "recommendations": [
       {
         "id": "expert-review",
         "name": "Expert review",
-        "description": "A focused expert inspection of the proposed experience and interaction flow",
-        "priority": "Engagement",
-        "rationale": "Useful when the project is still at concept level and direct user testing is limited"
+        "description": "A focused expert inspection of the proposed experience and interaction flow at concept level.",
+        "priority": "Recommended",
+        "rationale": "When participants are scarce and the system is at concept stage, expert review is the most viable evaluation approach."
       }
     ]
   },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Novelty / Curiosity"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud sessions reveal spontaneous curiosity and novelty reactions that users express during exploration."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "Hedonic questionnaires (e.g. AttrakDiff, UEQ) quantify perceived novelty and stimulation."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Aesthetic & Attractiveness"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "Validated aesthetic scales (e.g. AttrakDiff, VisAWI) are the primary tool for measuring visual appeal."
+      },
+      {
+        "id": "expert-review",
+        "name": "Expert review",
+        "description": "A focused expert inspection of the proposed experience and interaction flow at concept level.",
+        "priority": "Engagement",
+        "rationale": "Design experts can assess aesthetic coherence and visual quality without user involvement."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Affective Experience"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud captures emotional reactions and mood shifts as they happen during interaction."
+      },
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Recommended",
+        "rationale": "Interviews allow deep exploration of users' affective states and emotional responses to the system."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "Affect scales (e.g. SAM, PANAS) provide quantifiable measurements of emotional states."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Tension / Pressure"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Observing users in real time reveals stress behaviors and verbalized pressure during challenging tasks."
+      },
+      {
+        "id": "observation",
+        "name": "Observation",
+        "description": "Watching users interact with the system in context, without intervention, to capture natural behaviors and stress indicators.",
+        "priority": "Recommended",
+        "rationale": "Direct observation captures physiological and behavioral cues of tension that self-report methods may miss."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "Workload and tension scales (e.g. NASA-TLX, GEQ tension subscale) quantify subjective perceived pressure."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Competence / Mastery"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "Need-satisfaction scales (e.g. PENS, IMI) directly measure users' sense of competence and mastery."
+      },
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Engagement",
+        "rationale": "Think-aloud reveals moments where users feel competent or struggle with the system's challenge level."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Autonomy / Perceived Choice"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "PENS, IMI, and BNS scales measure users' perceived autonomy and sense of meaningful choice."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Social Connection / Relatedness"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "PENS relatedness subscale and social presence scales measure sense of connection within the system."
+      },
+      {
+        "id": "focus-group",
+        "name": "Focus Group",
+        "description": "A moderated group discussion (typically 6–10 users) to explore shared perceptions, social dynamics, and community experiences.",
+        "priority": "Recommended",
+        "rationale": "Group discussions naturally reveal social dynamics, belonging, and collective experience of the gamified system."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Motivation Spectrum"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "IMI and SMS scales measure the full intrinsic-to-extrinsic motivation spectrum directly."
+      },
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Engagement",
+        "rationale": "Interviews allow exploration of personal motivational drivers that standardized scales may not capture."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Behavioral Impact"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "observation",
+        "name": "Observation",
+        "description": "Watching users interact with the system in context, without intervention, to capture natural behaviors and stress indicators.",
+        "priority": "Recommended",
+        "rationale": "Direct observation captures actual behavioral changes that self-reported methods cannot reliably measure."
+      },
+      {
+        "id": "diary-study",
+        "name": "Diary Study",
+        "description": "Participants self-report their experiences, behaviors, and motivations over an extended period to capture longitudinal patterns.",
+        "priority": "Recommended",
+        "rationale": "Diary studies track behavior change over time, revealing whether gamification produces lasting behavioral impact."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "BREQ and Goal Attainment scales measure self-reported behavioral regulation and goal achievement."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Progress / Accomplishment"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud reveals how users perceive progress indicators and respond to achievement mechanics."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "Flow and cognitive engagement scales (e.g. FSS-2, EGameFlow) measure the quality of the progress experience."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Engagement"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud captures engagement depth by revealing the degree of user involvement and interest in real time."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "The User Engagement Scale (UES) and GEQ engrossment subscale measure multi-dimensional engagement."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Immersion / Flow / Focused Attention"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Concurrent think-aloud can surface immersion breakpoints — moments where flow is disrupted."
+      },
+      {
+        "id": "diary-study",
+        "name": "Diary Study",
+        "description": "Participants self-report their experiences, behaviors, and motivations over an extended period to capture longitudinal patterns.",
+        "priority": "Engagement",
+        "rationale": "Diary studies capture flow episodes and immersion patterns across repeated sessions over time."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Personal Meaning & Relevance"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Recommended",
+        "rationale": "Interviews are uniquely suited to exploring how users connect the system's content to their personal values and goals."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "miniPXI and MEEGA+ scales measure perceived personal relevance and meaningful experience."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Purpose & Values Alignment"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Recommended",
+        "rationale": "In-depth interviews reveal whether the system's purpose aligns with users' deeper motivations and personal values."
+      },
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Engagement",
+        "rationale": "miniPXI purpose subscale measures how well the experience aligns with users' personal values."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": ["Self-Transcendence"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Recommended",
+        "rationale": "Interviews capture reflective narratives about transcendent experiences and connection to something larger than self."
+      },
+      {
+        "id": "focus-group",
+        "name": "Focus Group",
+        "description": "A moderated group discussion (typically 6–10 users) to explore shared perceptions, social dynamics, and community experiences.",
+        "priority": "Engagement",
+        "rationale": "Group discussions reveal shared experiences of meaning and collective transcendence within the community."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["100+"],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "At large scale, surveys are the only feasible method to reach and collect data from 100+ participants."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["< 10"],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud provides rich qualitative insights from even a small number of participants."
+      },
+      {
+        "id": "expert-review",
+        "name": "Expert review",
+        "description": "A focused expert inspection of the proposed experience and interaction flow at concept level.",
+        "priority": "Engagement",
+        "rationale": "Expert review compensates for limited user availability by leveraging specialist knowledge."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredTime": ["1 week"],
+    "recommendations": [
+      {
+        "id": "expert-review",
+        "name": "Expert review",
+        "description": "A focused expert inspection of the proposed experience and interaction flow at concept level.",
+        "priority": "Recommended",
+        "rationale": "Expert review can be completed within a week without participant recruitment or session scheduling."
+      },
+      {
+        "id": "heuristic-evaluation",
+        "name": "Heuristic evaluation",
+        "description": "Experts inspect the interface against established usability principles to identify design problems.",
+        "priority": "Engagement",
+        "rationale": "Heuristic evaluation is fast to conduct and yields actionable results within tight time constraints."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredAccessibility": ["Difficult"],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "Remote questionnaires can reach users with difficult accessibility without requiring in-person sessions."
+      },
+      {
+        "id": "heuristic-evaluation",
+        "name": "Heuristic evaluation",
+        "description": "Experts inspect the interface against established usability principles to identify design problems.",
+        "priority": "Engagement",
+        "rationale": "When direct user access is limited, expert evaluation provides a valuable accessibility-independent alternative."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredExtraConstraints": ["Sensitive population"],
+    "recommendations": [
+      {
+        "id": "surveys",
+        "name": "Surveys & Questionnaires",
+        "description": "Collect structured user feedback through standardized questionnaires measuring attitudes, satisfaction, and usability.",
+        "priority": "Recommended",
+        "rationale": "Anonymous self-report questionnaires reduce risk for participants from sensitive populations."
+      },
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Engagement",
+        "rationale": "Interviews with sensitive populations require careful ethics protocols but provide richer, safer data collection."
+      }
+    ]
+  },
+  {
+    "forStep": 2,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredResearchEnabled": true,
+    "recommendations": [
+      {
+        "id": "think-aloud",
+        "name": "Think-aloud testing",
+        "description": "Users verbalize thoughts while interacting with the system to surface usability issues in real time.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud generates rich qualitative data aligned with research questions and hypothesis testing."
+      },
+      {
+        "id": "interview",
+        "name": "Interview",
+        "description": "A structured or semi-structured conversation with users to explore their experiences, emotions, and opinions in depth.",
+        "priority": "Recommended",
+        "rationale": "Structured interviews allow direct operationalisation of research questions as interview items."
+      }
+    ]
+  },
+
   {
     "forStep": 3,
     "requiredEvaluationGoals": [],
@@ -73,18 +589,18 @@
     "requiredMethods": ["surveys"],
     "recommendations": [
       {
-        "id": "useq-like",
-        "name": "USEQ-Like",
-        "description": "A short questionnaire targeting usability experience",
+        "id": "umux-lite",
+        "name": "UMUX-Lite",
+        "description": "Measure perceived usability with 2 items — a fast and validated scale suited to any context.",
         "priority": "Recommended",
-        "rationale": "Suitable when using questionnaires for usability evaluation"
+        "rationale": "A lightweight baseline instrument applicable to any survey-based evaluation."
       },
       {
         "id": "sus",
         "name": "SUS",
-        "description": "System Usability Scale",
+        "description": "10-item System Usability Scale — the most widely used standardized usability questionnaire.",
         "priority": "Engagement",
-        "rationale": "Widely used instrument for perceived usability"
+        "rationale": "SUS provides a comprehensive usability benchmark with established normative data."
       }
     ]
   },
@@ -99,9 +615,33 @@
       {
         "id": "observation-grid",
         "name": "Observation Grid",
-        "description": "Structured note-taking sheet for observed usability issues",
+        "description": "Structured note-taking sheet for recording observed usability issues and user behaviours.",
         "priority": "Recommended",
-        "rationale": "Useful for capturing qualitative insights during think-aloud sessions"
+        "rationale": "Provides systematic structure for capturing qualitative data during think-aloud sessions."
+      },
+      {
+        "id": "think-aloud-script",
+        "name": "Think-Aloud script",
+        "description": "A facilitator script instructing users how to think aloud and guiding session flow.",
+        "priority": "Recommended",
+        "rationale": "Ensures consistent facilitation and maximises the quality of think-aloud verbalizations."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": ["Low-fidelity prototype", "High-fidelity prototype"],
+    "requiredMethods": ["think-aloud"],
+    "recommendations": [
+      {
+        "id": "task-based-protocol",
+        "name": "Task based protocol",
+        "description": "A structured task scenario guide that leads users through specific interactions to identify usability issues.",
+        "priority": "Recommended",
+        "rationale": "Task-based protocols are most effective when the prototype is interactive enough to support task completion."
       }
     ]
   },
@@ -116,9 +656,514 @@
       {
         "id": "heuristic-checklist",
         "name": "Heuristic Checklist",
-        "description": "A checklist derived from recognized usability and game UX heuristics",
+        "description": "A checklist derived from recognized usability and game UX heuristics for systematic expert inspection.",
         "priority": "Recommended",
-        "rationale": "Supports systematic expert inspection and documentation of issues"
+        "rationale": "Provides a structured framework to ensure consistent coverage of all heuristic principles."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["expert-review"],
+    "recommendations": [
+      {
+        "id": "heuristic-checklist",
+        "name": "Heuristic Checklist",
+        "description": "A checklist derived from recognized usability and game UX heuristics for systematic expert inspection.",
+        "priority": "Recommended",
+        "rationale": "A heuristic checklist structures the expert review and ensures no dimension is overlooked."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Usability & Efficiency"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "attrakdiff",
+        "name": "AttrakDiff",
+        "description": "Semantic differential scale measuring pragmatic qualities, hedonic qualities, and overall attractiveness.",
+        "priority": "Recommended",
+        "rationale": "AttrakDiff captures both pragmatic (usability) and hedonic dimensions, providing a complete UX profile."
+      },
+      {
+        "id": "ueq",
+        "name": "UEQ",
+        "description": "User Experience Questionnaire — measures attractiveness, perspicuity, efficiency, dependability, stimulation, and novelty.",
+        "priority": "Engagement",
+        "rationale": "UEQ's efficiency subscale directly targets the usability dimension with established norms."
+      },
+      {
+        "id": "mecue",
+        "name": "meCUE",
+        "description": "Modular Evaluation of Key Components of User Experience — covers usefulness, usability, visual aesthetics, and emotions.",
+        "priority": "Engagement",
+        "rationale": "meCUE's usefulness and usability modules align precisely with efficiency evaluation goals."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Guidance & Feedback"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "sus",
+        "name": "SUS",
+        "description": "10-item System Usability Scale — the most widely used standardized usability questionnaire.",
+        "priority": "Recommended",
+        "rationale": "SUS learnability and usability items capture how effectively the system guides users."
+      },
+      {
+        "id": "mecue",
+        "name": "meCUE",
+        "description": "Modular Evaluation of Key Components of User Experience — covers usefulness, usability, visual aesthetics, and emotions.",
+        "priority": "Engagement",
+        "rationale": "meCUE's feedback and control modules directly measure perceived guidance quality."
+      },
+      {
+        "id": "umux-lite",
+        "name": "UMUX-Lite",
+        "description": "Measure perceived usability with 2 items — a fast and validated scale suited to any context.",
+        "priority": "Engagement",
+        "rationale": "UMUX-Lite is a fast complement to assess overall perceived usability in guidance contexts."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Novelty / Curiosity"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "attrakdiff",
+        "name": "AttrakDiff",
+        "description": "Semantic differential scale measuring pragmatic qualities, hedonic qualities, and overall attractiveness.",
+        "priority": "Recommended",
+        "rationale": "AttrakDiff's hedonic-stimulation subscale directly measures perceived novelty and stimulation."
+      },
+      {
+        "id": "ueq",
+        "name": "UEQ",
+        "description": "User Experience Questionnaire — measures attractiveness, perspicuity, efficiency, dependability, stimulation, and novelty.",
+        "priority": "Engagement",
+        "rationale": "UEQ includes dedicated novelty and stimulation subscales aligned with curiosity goals."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ's curiosity and immersion subscales capture engagement with novel game mechanics."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Aesthetic & Attractiveness"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "attrakdiff",
+        "name": "AttrakDiff",
+        "description": "Semantic differential scale measuring pragmatic qualities, hedonic qualities, and overall attractiveness.",
+        "priority": "Recommended",
+        "rationale": "AttrakDiff's attractiveness subscale is the benchmark tool for measuring perceived visual appeal."
+      },
+      {
+        "id": "ueq",
+        "name": "UEQ",
+        "description": "User Experience Questionnaire — measures attractiveness, perspicuity, efficiency, dependability, stimulation, and novelty.",
+        "priority": "Engagement",
+        "rationale": "UEQ's attractiveness subscale complements AttrakDiff with a different validated perspective."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Affective Experience"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "sam",
+        "name": "SAM",
+        "description": "Self-Assessment Manikin — a non-verbal pictorial scale measuring valence, arousal, and dominance.",
+        "priority": "Recommended",
+        "rationale": "SAM captures immediate emotional states quickly and cross-culturally, ideal for affective experience measurement."
+      },
+      {
+        "id": "panas",
+        "name": "PANAS",
+        "description": "Positive and Negative Affect Schedule — measures the intensity of positive and negative emotions.",
+        "priority": "Engagement",
+        "rationale": "PANAS provides a structured measure of both positive and negative affective states across interaction."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ's affect subscales are specifically validated for gamified and game-like contexts."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Tension / Pressure"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Recommended",
+        "rationale": "GEQ's tension and annoyance subscales are specifically designed for measuring stress in game contexts."
+      },
+      {
+        "id": "nasa-tlx",
+        "name": "NASA-TLX",
+        "description": "NASA Task Load Index — a multidimensional workload scale measuring mental demand, physical demand, and frustration.",
+        "priority": "Engagement",
+        "rationale": "NASA-TLX quantifies cognitive and perceived workload, directly measuring tension arising from task difficulty."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Competence / Mastery"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "pens",
+        "name": "PENS",
+        "description": "Player Experience of Need Satisfaction — measures competence, autonomy, and relatedness need satisfaction in game/play contexts.",
+        "priority": "Recommended",
+        "rationale": "PENS competence subscale directly measures the sense of mastery and effectiveness within the system."
+      },
+      {
+        "id": "imi",
+        "name": "IMI",
+        "description": "Intrinsic Motivation Inventory — measures interest/enjoyment, perceived competence, autonomy, relatedness, and effort.",
+        "priority": "Engagement",
+        "rationale": "IMI perceived competence subscale captures the intrinsic satisfaction derived from skill development."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Autonomy / Perceived Choice"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "pens",
+        "name": "PENS",
+        "description": "Player Experience of Need Satisfaction — measures competence, autonomy, and relatedness need satisfaction in game/play contexts.",
+        "priority": "Recommended",
+        "rationale": "PENS autonomy subscale measures users' sense of meaningful choice and self-direction within the system."
+      },
+      {
+        "id": "imi",
+        "name": "IMI",
+        "description": "Intrinsic Motivation Inventory — measures interest/enjoyment, perceived competence, autonomy, relatedness, and effort.",
+        "priority": "Engagement",
+        "rationale": "IMI perceived choice subscale captures the degree to which users feel their actions are self-determined."
+      },
+      {
+        "id": "bns",
+        "name": "BNS",
+        "description": "Basic Need Satisfaction Scale — measures the degree to which autonomy, competence, and relatedness needs are met.",
+        "priority": "Engagement",
+        "rationale": "BNS autonomy subscale provides a theory-grounded measure of perceived choice and volitional engagement."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Social Connection / Relatedness"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "pens",
+        "name": "PENS",
+        "description": "Player Experience of Need Satisfaction — measures competence, autonomy, and relatedness need satisfaction in game/play contexts.",
+        "priority": "Recommended",
+        "rationale": "PENS relatedness subscale measures users' sense of social connection and belonging within the system."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ social presence subscale captures felt social connectedness in multiplayer or community contexts."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Motivation Spectrum"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "imi",
+        "name": "IMI",
+        "description": "Intrinsic Motivation Inventory — measures interest/enjoyment, perceived competence, autonomy, relatedness, and effort.",
+        "priority": "Recommended",
+        "rationale": "IMI covers the full spectrum from intrinsic interest/enjoyment to identified and extrinsic regulation."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Behavioral Impact"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "imi",
+        "name": "IMI",
+        "description": "Intrinsic Motivation Inventory — measures interest/enjoyment, perceived competence, autonomy, relatedness, and effort.",
+        "priority": "Recommended",
+        "rationale": "IMI effort and importance subscales measure the behavioural investment users make in the system."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Progress / Accomplishment"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "fss2",
+        "name": "FSS-2",
+        "description": "Flow State Scale — measures the nine dimensions of flow as described by Csikszentmihalyi.",
+        "priority": "Recommended",
+        "rationale": "FSS-2 concentration and goal clarity subscales capture the cognitive quality of the progress experience."
+      },
+      {
+        "id": "egameflow",
+        "name": "EGameFlow",
+        "description": "E-Learning Game Flow Scale — measures flow in educational game contexts across concentration, goal clarity, and feedback dimensions.",
+        "priority": "Engagement",
+        "rationale": "EGameFlow's goal clarity and concentration subscales directly reflect the quality of progress mechanics."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ cognitive immersion subscale captures the mental absorption associated with progress and accomplishment."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Engagement"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "ues",
+        "name": "UES",
+        "description": "User Engagement Scale — measures focused attention, felt involvement, aesthetic appeal, and reward dimensions of engagement.",
+        "priority": "Recommended",
+        "rationale": "UES is the most comprehensive validated instrument for measuring multi-dimensional user engagement."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ engrossment subscale measures depth of engagement specifically in gamified contexts."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Immersion / Flow / Focused Attention"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "fss2",
+        "name": "FSS-2",
+        "description": "Flow State Scale — measures the nine dimensions of flow as described by Csikszentmihalyi.",
+        "priority": "Recommended",
+        "rationale": "FSS-2 is the gold standard for measuring flow state, covering absorption, time distortion, and focused attention."
+      },
+      {
+        "id": "egameflow",
+        "name": "EGameFlow",
+        "description": "E-Learning Game Flow Scale — measures flow in educational game contexts across concentration, goal clarity, and feedback dimensions.",
+        "priority": "Engagement",
+        "rationale": "EGameFlow extends flow measurement specifically to game-based learning contexts."
+      },
+      {
+        "id": "geq",
+        "name": "GEQ",
+        "description": "Game Experience Questionnaire — measures immersion, flow, competence, tension, challenge, and positive/negative affect in game contexts.",
+        "priority": "Engagement",
+        "rationale": "GEQ immersion subscale captures the experiential depth of focused attention in game contexts."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Personal Meaning & Relevance"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "minipxi",
+        "name": "miniPXI",
+        "description": "Mini Player Experience Inventory — a brief scale measuring meaning, purpose, and transcendence in game experiences.",
+        "priority": "Recommended",
+        "rationale": "miniPXI meaning subscale directly measures the degree to which the experience feels personally significant."
+      },
+      {
+        "id": "meega",
+        "name": "MEEGA+",
+        "description": "Model for Evaluation of Educational Games — measures usability, fun, and learning experience in educational game contexts.",
+        "priority": "Engagement",
+        "rationale": "MEEGA+ relevance subscale captures perceived alignment between the game content and users' learning goals."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Purpose & Values Alignment"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "minipxi",
+        "name": "miniPXI",
+        "description": "Mini Player Experience Inventory — a brief scale measuring meaning, purpose, and transcendence in game experiences.",
+        "priority": "Recommended",
+        "rationale": "miniPXI purpose subscale measures how well the experience aligns with users' personal values and goals."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": ["Self-Transcendence"],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "minipxi",
+        "name": "miniPXI",
+        "description": "Mini Player Experience Inventory — a brief scale measuring meaning, purpose, and transcendence in game experiences.",
+        "priority": "Recommended",
+        "rationale": "miniPXI transcendence subscale measures experiences of connection to something greater than oneself."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["100+"],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "sus",
+        "name": "SUS",
+        "description": "10-item System Usability Scale — the most widely used standardized usability questionnaire.",
+        "priority": "Recommended",
+        "rationale": "SUS provides statistically robust results at scale, with extensive normative benchmarking data available."
+      },
+      {
+        "id": "ueq",
+        "name": "UEQ",
+        "description": "User Experience Questionnaire — measures attractiveness, perspicuity, efficiency, dependability, stimulation, and novelty.",
+        "priority": "Engagement",
+        "rationale": "UEQ delivers a comprehensive multi-dimensional UX profile well-suited to large-sample studies."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["< 10"],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "umux-lite",
+        "name": "UMUX-Lite",
+        "description": "Measure perceived usability with 2 items — a fast and validated scale suited to any context.",
+        "priority": "Recommended",
+        "rationale": "UMUX-Lite's minimal response burden makes it ideal when participants are few and session time is limited."
+      }
+    ]
+  },
+  {
+    "forStep": 3,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "requiredTime": ["1 week"],
+    "recommendations": [
+      {
+        "id": "umux-lite",
+        "name": "UMUX-Lite",
+        "description": "Measure perceived usability with 2 items — a fast and validated scale suited to any context.",
+        "priority": "Recommended",
+        "rationale": "UMUX-Lite can be deployed and analysed within a single day, fitting tight one-week evaluation windows."
       }
     ]
   }

@@ -29,6 +29,7 @@ type Config struct {
 	PostgresDB       string
 	PostgresUser     string
 	PostgresPassword string
+	PostgresSSLMode  string
 
 	RedisHost string
 	RedisPort string
@@ -77,6 +78,7 @@ func Load() Config {
 		PostgresDB:                     getEnv("POSTGRES_DB", "gamidoc"),
 		PostgresUser:                   getEnv("POSTGRES_USER", "gamidoc"),
 		PostgresPassword:               getEnv("POSTGRES_PASSWORD", "gamidoc"),
+		PostgresSSLMode:                getEnv("POSTGRES_SSLMODE", "disable"),
 		RedisHost:                      getEnv("REDIS_HOST", "localhost"),
 		RedisPort:                      getEnv("REDIS_PORT", "6379"),
 		JWTSecret:                      getEnv("JWT_SECRET", "dev-secret"),
@@ -156,23 +158,25 @@ func (c Config) ValidateCore() error {
 
 func (c Config) PostgresDSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%s dbname=%s user=%s password=%s sslmode=disable",
+		"host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
 		c.PostgresHost,
 		c.PostgresPort,
 		c.PostgresDB,
 		c.PostgresUser,
 		c.PostgresPassword,
+		c.PostgresSSLMode,
 	)
 }
 
 func (c Config) PostgresURL() string {
 	return fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
+		"postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		c.PostgresUser,
 		c.PostgresPassword,
 		c.PostgresHost,
 		c.PostgresPort,
 		c.PostgresDB,
+		c.PostgresSSLMode,
 	)
 }
 

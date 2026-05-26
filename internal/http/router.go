@@ -29,6 +29,7 @@ type Dependencies struct {
 	Postgres           postgresReadyChecker
 	Redis              redisReadyChecker
 	TokenManager       *token.Manager
+	TokenBlacklist     *token.Blacklist
 	AuthHandler        http.Handler
 	ProjectHandler     *project.Handler
 	SessionHandler     *session.Handler
@@ -122,19 +123,19 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 
 		if deps.ProjectHandler != nil {
-			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Mount("/projects", deps.ProjectHandler.Routes())
+			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Mount("/projects", deps.ProjectHandler.Routes())
 		}
 
 		if deps.SessionHandler != nil {
 			r.Mount("/sessions", deps.SessionHandler.Routes())
-			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/sessions/{sessionId}/convert", deps.SessionHandler.Convert)
-			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/sessions/{sessionId}/convert-to-project", deps.SessionHandler.Convert)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Post("/sessions/{sessionId}/convert", deps.SessionHandler.Convert)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Post("/sessions/{sessionId}/convert-to-project", deps.SessionHandler.Convert)
 		}
 
 		if deps.PDFHandler != nil {
-			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Post("/projects/{projectId}/generate-pdf", deps.PDFHandler.ProjectGenerate)
 			r.Post("/sessions/{sessionId}/generate-pdf", deps.PDFHandler.SessionGenerate)
-			r.With(appmiddleware.RequireAuth(deps.TokenManager)).Get("/projects/{projectId}/download-pdf", deps.PDFHandler.ProjectDownload)
+			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Get("/projects/{projectId}/download-pdf", deps.PDFHandler.ProjectDownload)
 			r.Get("/sessions/{sessionId}/download-pdf", deps.PDFHandler.SessionDownload)
 		}
 	})

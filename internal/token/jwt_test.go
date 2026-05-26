@@ -9,7 +9,7 @@ import (
 func TestManagerGenerateAndParse(t *testing.T) {
 	manager := NewManager("secret", time.Hour)
 
-	value, err := manager.Generate("user-1", "test@example.com")
+	value, err := manager.Generate("user-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -23,8 +23,8 @@ func TestManagerGenerateAndParse(t *testing.T) {
 		t.Fatalf("expected user id %q, got %q", "user-1", claims.UserID)
 	}
 
-	if claims.Email != "test@example.com" {
-		t.Fatalf("expected email %q, got %q", "test@example.com", claims.Email)
+	if claims.ID == "" {
+		t.Fatal("expected jti to be set")
 	}
 }
 
@@ -40,7 +40,7 @@ func TestManagerRejectsInvalidToken(t *testing.T) {
 func TestManagerRejectsExpiredToken(t *testing.T) {
 	manager := NewManager("secret", -time.Hour)
 
-	value, err := manager.Generate("user-1", "test@example.com")
+	value, err := manager.Generate("user-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -55,7 +55,7 @@ func TestManagerRejectsWrongSecret(t *testing.T) {
 	manager1 := NewManager("secret-1", time.Hour)
 	manager2 := NewManager("secret-2", time.Hour)
 
-	value, err := manager1.Generate("user-1", "test@example.com")
+	value, err := manager1.Generate("user-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

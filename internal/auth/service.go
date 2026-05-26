@@ -18,8 +18,10 @@ var ErrEmailAlreadyExists = errors.New("email already exists")
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type Service struct {
-	users  user.Repository
-	tokens *token.Manager
+	users        user.Repository
+	tokens       *token.Manager
+	refreshStore *token.RefreshStore
+	blacklist    *token.Blacklist
 }
 
 type RegisterInput struct {
@@ -33,14 +35,17 @@ type LoginInput struct {
 }
 
 type AuthResult struct {
-	Token string    `json:"token"`
-	User  user.User `json:"user"`
+	AccessToken  string    `json:"access_token"`
+	User         user.User `json:"user"`
+	RefreshToken string    `json:"-"` // sent via httpOnly cookie, not in JSON body
 }
 
-func NewService(users user.Repository, tokens *token.Manager) *Service {
+func NewService(users user.Repository, tokens *token.Manager, refreshStore *token.RefreshStore, blacklist *token.Blacklist) *Service {
 	return &Service{
-		users:  users,
-		tokens: tokens,
+		users:        users,
+		tokens:       tokens,
+		refreshStore: refreshStore,
+		blacklist:    blacklist,
 	}
 }
 
@@ -75,15 +80,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthResult
 		return AuthResult{}, err
 	}
 
-	tokenValue, err := s.tokens.Generate(createdUser.ID, createdUser.Email)
-	if err != nil {
-		return AuthResult{}, err
-	}
-
-	return AuthResult{
-		Token: tokenValue,
-		User:  createdUser,
-	}, nil
+	return s.issueTokens(ctx, createdUser)
 }
 
 func (s *Service) Login(ctx context.Context, input LoginInput) (AuthResult, error) {
@@ -100,17 +97,59 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthResult, erro
 		return AuthResult{}, ErrInvalidCredentials
 	}
 
-	tokenValue, err := s.tokens.Generate(foundUser.ID, foundUser.Email)
+	return s.issueTokens(ctx, foundUser)
+}
+
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (AuthResult, error) {
+	userID, err := s.refreshStore.Validate(ctx, refreshToken)
+	if err != nil {
+		return AuthResult{}, err
+	}
+
+	// Revoke old refresh token (rotation)
+	_ = s.refreshStore.Revoke(ctx, refreshToken)
+
+	foundUser, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return AuthResult{}, err
+	}
+
+	return s.issueTokens(ctx, foundUser)
+}
+
+func (s *Service) Logout(ctx context.Context, accessToken string, refreshToken string) error {
+	// Blacklist the current access token jti
+	claims, err := s.tokens.Parse(accessToken)
+	if err == nil && claims.ID != "" {
+		_ = s.blacklist.Add(ctx, claims.ID, claims.ExpiresAt.Time)
+	}
+
+	// Revoke the refresh token
+	if refreshToken != "" {
+		_ = s.refreshStore.Revoke(ctx, refreshToken)
+	}
+
+	return nil
+}
+
+func (s *Service) Me(ctx context.Context, userID string) (user.User, error) {
+	return s.users.FindByID(ctx, userID)
+}
+
+func (s *Service) issueTokens(ctx context.Context, u user.User) (AuthResult, error) {
+	accessToken, err := s.tokens.Generate(u.ID)
+	if err != nil {
+		return AuthResult{}, err
+	}
+
+	refreshToken, err := s.refreshStore.GenerateAndStore(ctx, u.ID)
 	if err != nil {
 		return AuthResult{}, err
 	}
 
 	return AuthResult{
-		Token: tokenValue,
-		User:  foundUser,
+		AccessToken:  accessToken,
+		User:         u,
+		RefreshToken: refreshToken,
 	}, nil
-}
-
-func (s *Service) Me(ctx context.Context, userID string) (user.User, error) {
-	return s.users.FindByID(ctx, userID)
 }

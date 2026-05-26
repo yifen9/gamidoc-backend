@@ -39,6 +39,8 @@ type Config struct {
 	JWTSecret    string
 	JWTExpiresIn time.Duration
 
+	RefreshTokenTTL time.Duration
+
 	SessionTTL time.Duration
 
 	ObjectStorageProvider          string
@@ -61,7 +63,8 @@ type Config struct {
 }
 
 func Load() Config {
-	expiresIn := parseDurationWithFallback(getEnv("JWT_EXPIRES_IN", "24h"), 24*time.Hour)
+	expiresIn := parseDurationWithFallback(getEnv("JWT_EXPIRES_IN", "15m"), 15*time.Minute)
+	refreshTTL := parseDurationWithFallback(getEnv("REFRESH_TOKEN_TTL", "168h"), 168*time.Hour)
 	sessionTTL := parseDurationWithFallback(getEnv("SESSION_TTL", "48h"), 48*time.Hour)
 
 	return Config{
@@ -87,6 +90,7 @@ func Load() Config {
 		RedisTLS:                       getEnvBool("REDIS_TLS", false),
 		JWTSecret:                      getEnv("JWT_SECRET", "dev-secret"),
 		JWTExpiresIn:                   expiresIn,
+		RefreshTokenTTL:                refreshTTL,
 		SessionTTL:                     sessionTTL,
 		ObjectStorageProvider:          getEnv("OBJECT_STORAGE_PROVIDER", "local"),
 		ObjectStoragePublicBaseURL:     getEnv("OBJECT_STORAGE_PUBLIC_BASE_URL", getEnv("PDF_BASE_URL", "/files/pdfs")),

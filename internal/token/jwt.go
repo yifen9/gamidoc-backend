@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var ErrInvalidToken = errors.New("invalid token")
@@ -21,13 +22,17 @@ func NewManager(secret string, expiresIn time.Duration) *Manager {
 	}
 }
 
-func (m *Manager) Generate(userID string, email string) (string, error) {
+func (m *Manager) ExpiresIn() time.Duration {
+	return m.expiresIn
+}
+
+func (m *Manager) Generate(userID string) (string, error) {
 	now := time.Now()
 
 	claims := Claims{
 		UserID: userID,
-		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.expiresIn)),
 		},

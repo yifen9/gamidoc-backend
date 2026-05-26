@@ -11,4 +11,4 @@ COPY --from=builder /app/gamidoc-backend .
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/rule ./rule
 EXPOSE 8080
-CMD ["./gamidoc-backend", "serve"]
+CMD ["sh", "-c", "./gamidoc-backend migrate up && ./gamidoc-backend serve"]

@@ -44,6 +44,27 @@ func TestEngineRecommendMatchesRequiredMethods(t *testing.T) {
 	}
 }
 
+func TestEngineRecommendMatchesRequiredInstruments(t *testing.T) {
+	engine := NewEngine([]Rule{
+		{
+			ForStep:             4,
+			RequiredInstruments: []string{"sus"},
+			Recommendations: []Recommendation{
+				{ID: "survey-analysis-plan", Name: "Survey analysis plan"},
+			},
+		},
+	})
+
+	result := engine.Recommend(Input{
+		ForStep:             4,
+		SelectedInstruments: []string{"sus"},
+	})
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(result))
+	}
+}
+
 func TestEngineRecommendMatchesProjectContext(t *testing.T) {
 	engine := NewEngine([]Rule{
 		{

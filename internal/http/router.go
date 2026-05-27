@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gamidoc/backend/internal/activity"
 	appmiddleware "github.com/gamidoc/backend/internal/http/middleware"
 	"github.com/gamidoc/backend/internal/http/response"
 	"github.com/gamidoc/backend/internal/pdf"
@@ -26,6 +27,7 @@ type redisReadyChecker interface {
 
 type Dependencies struct {
 	Logger             *slog.Logger
+	ActivityRecorder   activity.Recorder
 	Postgres           postgresReadyChecker
 	Redis              redisReadyChecker
 	TokenManager       *token.Manager
@@ -59,6 +61,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	r.Use(appmiddleware.RequestID)
 	r.Use(appmiddleware.Recovery(deps.Logger))
 	r.Use(appmiddleware.Logging(deps.Logger))
+	r.Use(appmiddleware.Activity(deps.ActivityRecorder, deps.TokenManager, deps.Logger))
 	r.Use(appmiddleware.CORS(deps.CORSAllowedOrigins))
 	r.Use(appmiddleware.BodyLimit(deps.MaxBodyBytes))
 

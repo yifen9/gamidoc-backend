@@ -15,8 +15,14 @@ var ErrInvalidProjectName = errors.New("invalid project name")
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbiddenProject = errors.New("forbidden project")
 
-type SessionWizardReader interface {
-	FindWizardByID(ctx context.Context, sessionID string) (wizard.Status, error)
+type SessionSource struct {
+	Wizard wizard.Status
+	PDFURL *string
+}
+
+type SessionProjectReader interface {
+	FindProjectSourceByID(ctx context.Context, sessionID string) (SessionSource, error)
+	Delete(ctx context.Context, sessionID string) error
 }
 
 // PDFCleaner allows deleting a stored PDF file by URL.
@@ -27,7 +33,7 @@ type PDFCleaner interface {
 
 type Service struct {
 	projects        Repository
-	sessions        SessionWizardReader
+	sessions        SessionProjectReader
 	wizard          *wizard.Service
 	recommendations *recommendation.Service
 	store           PDFCleaner
@@ -52,7 +58,7 @@ type SaveStepInput struct {
 	StepData json.RawMessage `json:"stepData"`
 }
 
-func NewService(projects Repository, sessions SessionWizardReader, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
+func NewService(projects Repository, sessions SessionProjectReader, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
 	return &Service{
 		projects:        projects,
 		sessions:        sessions,
@@ -91,18 +97,28 @@ func (s *Service) CreateFromSession(ctx context.Context, userID string, sessionI
 		return Project{}, ErrInvalidProjectName
 	}
 
-	foundWizard, err := s.sessions.FindWizardByID(ctx, sessionID)
+	source, err := s.sessions.FindProjectSourceByID(ctx, sessionID)
 	if err != nil {
 		return Project{}, err
 	}
 
-	return s.projects.Create(ctx, Project{
+	created, err := s.projects.Create(ctx, Project{
 		ID:          uuid.NewString(),
 		UserID:      userID,
 		Name:        name,
 		Description: description,
-		Wizard:      foundWizard,
+		Wizard:      source.Wizard,
+		PDFURL:      source.PDFURL,
 	})
+	if err != nil {
+		return Project{}, err
+	}
+
+	if err := s.sessions.Delete(ctx, sessionID); err != nil {
+		return Project{}, err
+	}
+
+	return created, nil
 }
 
 func (s *Service) List(ctx context.Context, userID string) ([]Project, error) {

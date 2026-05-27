@@ -1166,5 +1166,148 @@
         "rationale": "UMUX-Lite can be deployed and analysed within a single day, fitting tight one-week evaluation windows."
       }
     ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["surveys"],
+    "recommendations": [
+      {
+        "id": "survey-analysis-plan",
+        "name": "Survey analysis plan",
+        "description": "Prepare scoring, cleaning, and comparison steps for questionnaire responses before data collection starts.",
+        "priority": "Recommended",
+        "rationale": "Survey-based evaluations need a predefined analysis plan so the generated results can be interpreted consistently."
+      },
+      {
+        "id": "pilot-questionnaire",
+        "name": "Pilot questionnaire",
+        "description": "Run the questionnaire with a small group to check wording, completion time, and missing response options.",
+        "priority": "Engagement",
+        "rationale": "A short pilot reduces ambiguity and improves data quality before the full evaluation."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["think-aloud"],
+    "recommendations": [
+      {
+        "id": "moderation-script",
+        "name": "Moderation script",
+        "description": "Create a session script with task prompts, neutral follow-up questions, and note-taking checkpoints.",
+        "priority": "Recommended",
+        "rationale": "Think-aloud sessions produce more comparable findings when the facilitator follows a consistent protocol."
+      },
+      {
+        "id": "issue-coding-sheet",
+        "name": "Issue coding sheet",
+        "description": "Define a lightweight coding sheet for observed problems, severity, evidence, and affected game element.",
+        "priority": "Engagement",
+        "rationale": "Structured coding makes qualitative observations easier to prioritize and report."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": ["observation"],
+    "recommendations": [
+      {
+        "id": "observation-protocol",
+        "name": "Observation protocol",
+        "description": "Define the behaviors, interaction moments, and contextual notes that observers should capture during sessions.",
+        "priority": "Recommended",
+        "rationale": "Observation work needs a shared protocol to avoid inconsistent notes across sessions or observers."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": ["100+"],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "recommendations": [
+      {
+        "id": "sampling-and-segmentation-plan",
+        "name": "Sampling and segmentation plan",
+        "description": "Define target segments, minimum sample sizes, and comparison groups before recruiting participants.",
+        "priority": "Recommended",
+        "rationale": "Large samples create the opportunity for stronger comparisons, but only if segmentation is planned up front."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredTime": ["1 week"],
+    "recommendations": [
+      {
+        "id": "rapid-evaluation-checklist",
+        "name": "Rapid evaluation checklist",
+        "description": "Limit the evaluation to the highest-risk goals, the fastest instrument, and a short reporting template.",
+        "priority": "Recommended",
+        "rationale": "A one-week evaluation window needs strict scope control to remain feasible."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredResearchEnabled": true,
+    "recommendations": [
+      {
+        "id": "research-protocol",
+        "name": "Research protocol",
+        "description": "Write a short protocol that links objectives, research questions, hypotheses, measures, and analysis decisions.",
+        "priority": "Recommended",
+        "rationale": "Research-oriented evaluations need a traceable protocol so conclusions are aligned with the stated questions."
+      },
+      {
+        "id": "ethics-and-consent-review",
+        "name": "Ethics and consent review",
+        "description": "Check consent wording, data retention, participant risk, and anonymity before running the evaluation.",
+        "priority": "Engagement",
+        "rationale": "Research data collection should make privacy and consent explicit before participants are involved."
+      }
+    ]
+  },
+  {
+    "forStep": 4,
+    "requiredEvaluationGoals": [],
+    "requiredProjectTypes": [],
+    "requiredParticipants": [],
+    "requiredDevelopmentStages": [],
+    "requiredMethods": [],
+    "requiredInstruments": ["sus"],
+    "recommendations": [
+      {
+        "id": "sus-scoring-and-benchmarking",
+        "name": "SUS scoring and benchmarking",
+        "description": "Prepare the SUS score conversion, adjective rating interpretation, and benchmark comparison before reporting.",
+        "priority": "Recommended",
+        "rationale": "SUS results are most useful when scores are interpreted against established benchmarks."
+      }
+    ]
   }
 ]

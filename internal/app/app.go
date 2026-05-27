@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gamidoc/backend/config"
+	"github.com/gamidoc/backend/internal/activity"
 	"github.com/gamidoc/backend/internal/auth"
 	"github.com/gamidoc/backend/internal/bootstrap"
 	apphttp "github.com/gamidoc/backend/internal/http"
@@ -88,6 +89,8 @@ func New(cfg config.Config) (*App, error) {
 	authHandler := auth.NewHandler(authService, tokenManager, tokenBlacklist, cfg.RefreshTokenTTL, secureCookie)
 
 	projectRepository := postgres.NewProjectRepository(pg)
+	activityRepository := postgres.NewActivityRepository(pg)
+	activityService := activity.NewService(activityRepository)
 	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
 
 	projectService := project.NewService(projectRepository, sessionRepository, wizardService, recommendationService)
@@ -136,6 +139,7 @@ func New(cfg config.Config) (*App, error) {
 
 	application.router = apphttp.NewRouter(apphttp.Dependencies{
 		Logger:             application.logger,
+		ActivityRecorder:   activityService,
 		Postgres:           application.pg,
 		Redis:              application.redis,
 		TokenManager:       tokenManager,

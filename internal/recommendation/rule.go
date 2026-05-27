@@ -7,6 +7,7 @@ type Rule struct {
 	RequiredParticipants      []string         `json:"requiredParticipants"`
 	RequiredDevelopmentStages []string         `json:"requiredDevelopmentStages"`
 	RequiredMethods           []string         `json:"requiredMethods"`
+	RequiredInstruments       []string         `json:"requiredInstruments"`
 	RequiredAccessibility     []string         `json:"requiredAccessibility"`
 	RequiredTime              []string         `json:"requiredTime"`
 	RequiredExtraConstraints  []string         `json:"requiredExtraConstraints"`

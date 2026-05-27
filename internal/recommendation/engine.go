@@ -41,6 +41,10 @@ func (e *Engine) Recommend(input Input) []Recommendation {
 			continue
 		}
 
+		if !matchesAll(input.SelectedInstruments, rule.RequiredInstruments) {
+			continue
+		}
+
 		if !matchesAny(input.Accessibility, rule.RequiredAccessibility) {
 			continue
 		}

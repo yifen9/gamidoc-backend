@@ -84,6 +84,43 @@ func TestRecommendStep3(t *testing.T) {
 	}
 }
 
+func TestRecommendStep4(t *testing.T) {
+	engine := NewEngine(LoadDefaultRulesForTest())
+	service := NewService(engine)
+
+	step1, _ := json.Marshal(map[string]any{
+		"evaluationGoals":  []string{"Usability & Playability"},
+		"projectType":      "Concept test",
+		"participants":     "Limited set of participants",
+		"developmentStage": "Concept idea",
+	})
+	step2, _ := json.Marshal(map[string]any{
+		"selectedMethods": []string{"Surveys & Questionnaires"},
+	})
+	step3, _ := json.Marshal(map[string]any{
+		"selectedInstruments": []string{"SUS"},
+	})
+
+	status := wizard.Status{
+		CurrentStep: 4,
+		IsComplete:  false,
+		Steps: map[string]json.RawMessage{
+			"1": step1,
+			"2": step2,
+			"3": step3,
+		},
+	}
+
+	result, err := service.Recommend(status, 4)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(result.Recommendations) == 0 {
+		t.Fatal("expected at least one recommendation")
+	}
+}
+
 func TestRecommendStep2UsesProjectContext(t *testing.T) {
 	engine := NewEngine([]Rule{
 		{
@@ -146,6 +183,16 @@ func LoadDefaultRulesForTest() []Rule {
 			Recommendations: []Recommendation{
 				{
 					ID: "sus",
+				},
+			},
+		},
+		{
+			ForStep:             4,
+			RequiredMethods:     []string{"surveys"},
+			RequiredInstruments: []string{"sus"},
+			Recommendations: []Recommendation{
+				{
+					ID: "survey-analysis-plan",
 				},
 			},
 		},

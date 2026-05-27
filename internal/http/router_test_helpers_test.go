@@ -200,6 +200,17 @@ func (r *fakeSessionRepository) FindWizardByID(ctx context.Context, id string) (
 	return item.Wizard, nil
 }
 
+func (r *fakeSessionRepository) FindProjectSourceByID(ctx context.Context, id string) (project.SessionSource, error) {
+	item, ok := r.byID[id]
+	if !ok {
+		return project.SessionSource{}, session.ErrSessionNotFound
+	}
+	return project.SessionSource{
+		Wizard: item.Wizard,
+		PDFURL: item.PDFURL,
+	}, nil
+}
+
 func (r *fakeSessionRepository) UpdateWizard(ctx context.Context, id string, status wizard.Status) (session.Session, error) {
 	item, ok := r.byID[id]
 	if !ok {
@@ -219,6 +230,14 @@ func (r *fakeSessionRepository) UpdatePDFURL(ctx context.Context, id string, pdf
 	item.PDFURL = &pdfURL
 	r.byID[id] = item
 	return item, nil
+}
+
+func (r *fakeSessionRepository) Delete(ctx context.Context, id string) error {
+	if _, ok := r.byID[id]; !ok {
+		return session.ErrSessionNotFound
+	}
+	delete(r.byID, id)
+	return nil
 }
 
 func testLogger() *slog.Logger {

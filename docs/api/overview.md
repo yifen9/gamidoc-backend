@@ -115,3 +115,4 @@ When a dependency check fails, the handler returns `503` and marks the failing s
 - `GET /` returns `404` in the backend only deployment.
 - `GET /files/pdfs/*` serves generated PDF bytes from public object storage.
 - The API uses bearer tokens for protected routes.
+- API requests and key user-flow actions are recorded in `activity_events` for audit/debug and usage analytics.

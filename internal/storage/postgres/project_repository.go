@@ -27,8 +27,8 @@ func (r *ProjectRepository) Create(ctx context.Context, input project.Project) (
 	row := r.db.sql.QueryRowContext(
 		ctx,
 		`
-		INSERT INTO projects (id, user_id, name, description, wizard_data)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO projects (id, user_id, name, description, wizard_data, pdf_url)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, user_id, name, description, wizard_data, pdf_url, created_at, updated_at
 		`,
 		input.ID,
@@ -36,6 +36,7 @@ func (r *ProjectRepository) Create(ctx context.Context, input project.Project) (
 		input.Name,
 		nullableString(input.Description),
 		wizardData,
+		nullableStringPtr(input.PDFURL),
 	)
 
 	return scanProject(row)
@@ -254,4 +255,11 @@ func nullableString(value string) any {
 		return nil
 	}
 	return value
+}
+
+func nullableStringPtr(value *string) any {
+	if value == nil || *value == "" {
+		return nil
+	}
+	return *value
 }

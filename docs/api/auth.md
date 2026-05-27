@@ -2,9 +2,9 @@
 
 ## Model
 
-The backend uses bearer tokens.
+The backend uses short-lived bearer access tokens plus an opaque refresh token in an `HttpOnly` cookie.
 
-Send the token in the `Authorization` header.
+Send the access token in the `Authorization` header.
 
 ```text
 Authorization: Bearer <token>
@@ -15,7 +15,7 @@ Authorization: Bearer <token>
 | Field | Value |
 | --- | --- |
 | Auth | No |
-| Success | `201` auth result `{ token, user }` |
+| Success | `201` auth result `{ access_token, user }` plus `Set-Cookie: refresh_token=...` |
 | Errors | `400 INVALID_INPUT`, `400 INVALID_EMAIL`, `400 INVALID_PASSWORD`, `400 EMAIL_ALREADY_EXISTS`, `500 INTERNAL_SERVER_ERROR` |
 | Notes | Password must be at least 8 characters |
 
@@ -32,7 +32,7 @@ Response:
 
 ```json
 {
-  "token": "eyJhbGciOi...",
+  "access_token": "eyJhbGciOi...",
   "user": {
     "id": "7d7efb4d-0f1c-4f69-9b74-5e2a0d5d5a50",
     "email": "demo@example.com",
@@ -60,7 +60,7 @@ Validation errors use the shared envelope, for example:
 | Field | Value |
 | --- | --- |
 | Auth | No |
-| Success | `200` auth result `{ token, user }` |
+| Success | `200` auth result `{ access_token, user }` plus `Set-Cookie: refresh_token=...` |
 | Errors | `400 INVALID_INPUT`, `401 INVALID_CREDENTIALS`, `500 INTERNAL_SERVER_ERROR` |
 | Notes | Missing users and bad passwords both map to `INVALID_CREDENTIALS` |
 
@@ -77,7 +77,7 @@ Response:
 
 ```json
 {
-  "token": "eyJhbGciOi...",
+  "access_token": "eyJhbGciOi...",
   "user": {
     "id": "7d7efb4d-0f1c-4f69-9b74-5e2a0d5d5a50",
     "email": "demo@example.com",
@@ -85,6 +85,26 @@ Response:
   }
 }
 ```
+
+## `POST /api/v1/auth/refresh`
+
+| Field | Value |
+| --- | --- |
+| Auth | Refresh cookie |
+| Success | `200` auth result `{ access_token, user }` plus rotated `Set-Cookie: refresh_token=...` |
+| Errors | `401 UNAUTHORIZED` |
+| Notes | Refresh tokens are single-use; a successful refresh revokes the previous refresh token |
+
+Request body is empty. The browser/client must send the `refresh_token` cookie scoped to `/api/v1/auth`.
+
+## `POST /api/v1/auth/logout`
+
+| Field | Value |
+| --- | --- |
+| Auth | Optional bearer token and optional refresh cookie |
+| Success | `200` `{ "status": "ok" }` and cleared refresh cookie |
+| Errors | None expected for invalid or missing tokens |
+| Notes | If a valid access token is provided, its JWT ID is blacklisted until expiry; the refresh token is revoked when present |
 
 ## `GET /api/v1/auth/me`
 

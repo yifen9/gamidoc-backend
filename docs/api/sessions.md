@@ -104,7 +104,7 @@ Response:
 | Auth | Yes |
 | Success | `201` project object |
 | Errors | `401 UNAUTHORIZED`, `400 INVALID_INPUT`, `400 INVALID_PROJECT_NAME`, `404 SESSION_NOT_FOUND`, `500 INTERNAL_SERVER_ERROR` |
-| Notes | Creates a project from the session wizard state; the source session stays in place and the existing PDF reference is not copied |
+| Notes | Creates a project from the session wizard state, copies any existing PDF reference, then deletes the source session |
 
 Request:
 
@@ -143,7 +143,7 @@ Response:
       }
     }
   },
-  "pdfUrl": null,
+  "pdfUrl": "/files/pdfs/sessions/1f9f2b8d-1f0b-4c3c-9e2c-3dbd8f8b2d77/evaluation.pdf",
   "createdAt": "2026-05-05T12:10:00Z",
   "updatedAt": "2026-05-05T12:10:00Z"
 }

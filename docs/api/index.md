@@ -9,6 +9,7 @@ This section documents the current backend API, the auth model, the PDF flow, an
 - [Projects](projects.md)
 - [Sessions](sessions.md)
 - [PDF delivery](pdf.md)
+- [Activity tracking](activity.md)
 - [Requirement coverage and gaps](coverage.md)
 
 ## Base URL
@@ -22,4 +23,5 @@ Use `{BASE_URL}` in examples. If you need a concrete host for sample requests, u
 - Bearer auth for protected routes
 - Project and anonymous session flows
 - PDF generation and public file download
+- Activity tracking for API requests and key user actions
 - Requirement coverage plus known gaps

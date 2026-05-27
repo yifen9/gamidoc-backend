@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gamidoc/backend/internal/project"
 	"github.com/gamidoc/backend/internal/session"
 	"github.com/gamidoc/backend/internal/wizard"
 	goredis "github.com/redis/go-redis/v9"
@@ -64,6 +65,17 @@ func (r *SessionRepository) FindWizardByID(ctx context.Context, id string) (wiza
 	return found.Wizard, nil
 }
 
+func (r *SessionRepository) FindProjectSourceByID(ctx context.Context, id string) (project.SessionSource, error) {
+	found, err := r.FindByID(ctx, id)
+	if err != nil {
+		return project.SessionSource{}, err
+	}
+	return project.SessionSource{
+		Wizard: found.Wizard,
+		PDFURL: found.PDFURL,
+	}, nil
+}
+
 func (r *SessionRepository) UpdateWizard(ctx context.Context, id string, status wizard.Status) (session.Session, error) {
 	found, err := r.FindByID(ctx, id)
 	if err != nil {
@@ -105,6 +117,18 @@ func (r *SessionRepository) UpdatePDFURL(ctx context.Context, id string, pdfURL 
 	}
 
 	return found, nil
+}
+
+func (r *SessionRepository) Delete(ctx context.Context, id string) error {
+	key := r.key(id)
+	deleted, err := r.client.Raw().Del(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return session.ErrSessionNotFound
+	}
+	return nil
 }
 
 func (r *SessionRepository) key(id string) string {

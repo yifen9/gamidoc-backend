@@ -24,8 +24,34 @@ var methodNameToID = map[string]string{
 	"Experience Report":        "experience-report",
 }
 
+var instrumentNameToID = map[string]string{
+	"SUS":        "sus",
+	"UEQ":        "ueq",
+	"UMUX-Lite":  "umux-lite",
+	"AttrakDiff": "attrakdiff",
+	"meCUE":      "mecue",
+	"SAM":        "sam",
+	"PANAS":      "panas",
+	"GEQ":        "geq",
+	"NASA-TLX":   "nasa-tlx",
+	"PENS":       "pens",
+	"IMI":        "imi",
+	"BNS":        "bns",
+	"FSS-2":      "fss2",
+	"EGameFlow":  "egameflow",
+	"miniPXI":    "minipxi",
+	"MEEGA+":     "meega",
+}
+
 func normalizeMethodName(name string) string {
 	if id, ok := methodNameToID[name]; ok {
+		return id
+	}
+	return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+}
+
+func normalizeInstrumentName(name string) string {
+	if id, ok := instrumentNameToID[name]; ok {
 		return id
 	}
 	return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
@@ -36,16 +62,17 @@ type Service struct {
 }
 
 type Input struct {
-	ForStep          int
-	EvaluationGoals  []string
-	ProjectType      string
-	Participants     string
-	DevelopmentStage string
-	SelectedMethods  []string
-	Accessibility    string
-	Time             string
-	ExtraConstraints []string
-	ResearchEnabled  bool
+	ForStep             int
+	EvaluationGoals     []string
+	ProjectType         string
+	Participants        string
+	DevelopmentStage    string
+	SelectedMethods     []string
+	SelectedInstruments []string
+	Accessibility       string
+	Time                string
+	ExtraConstraints    []string
+	ResearchEnabled     bool
 }
 
 func NewService(engine *Engine) *Service {
@@ -80,6 +107,14 @@ func (s *Service) Recommend(status wizard.Status, forStep int) (Result, error) {
 			normalized[i] = normalizeMethodName(name)
 		}
 		input.SelectedMethods = normalized
+	}
+
+	if step3, ok := wizard.DecodeStep3(status); ok {
+		normalized := make([]string, len(step3.SelectedInstruments))
+		for i, name := range step3.SelectedInstruments {
+			normalized[i] = normalizeInstrumentName(name)
+		}
+		input.SelectedInstruments = normalized
 	}
 
 	return Result{

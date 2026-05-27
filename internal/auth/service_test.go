@@ -100,7 +100,11 @@ func TestRegisterReturnsFindByEmailError(t *testing.T) {
 	lookupErr := errors.New("lookup failed")
 	repo := &fakeUserRepository{findByEmailErr: lookupErr}
 	tokens := token.NewManager("secret", time.Hour)
-	service := NewService(repo, tokens)
+	mr := miniredis.RunT(t)
+	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
+	refreshStore := token.NewRefreshStore(rdb, 7*24*time.Hour)
+	blacklist := token.NewBlacklist(rdb)
+	service := NewService(repo, tokens, refreshStore, blacklist)
 
 	_, err := service.Register(context.Background(), RegisterInput{
 		Email:    "test@example.com",

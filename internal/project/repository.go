@@ -8,7 +8,7 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, input Project) (Project, error)
-	ListByUserID(ctx context.Context, userID string) ([]Project, error)
+	ListByUserID(ctx context.Context, userID string, options ListOptions) (ListResult, error)
 	FindByID(ctx context.Context, id string) (Project, error)
 	UpdateWizard(ctx context.Context, projectID string, status wizard.Status) (Project, error)
 	UpdateInfo(ctx context.Context, projectID string, name string, description string) (Project, error)

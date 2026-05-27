@@ -6,6 +6,7 @@ services:
     depends_on:
       - gamidoc-backend-prod-pg
       - gamidoc-backend-prod-redis
+      - gamidoc-backend-prod-gotenberg
     ports:
       - "8080:8080"
     env_file:
@@ -30,6 +31,11 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - gamidoc-backend-prod-redis-data:/data
+
+  gamidoc-backend-prod-gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: gamidoc-backend-prod-gotenberg
+    restart: unless-stopped
 
 volumes:
   gamidoc-backend-prod-pdfs:

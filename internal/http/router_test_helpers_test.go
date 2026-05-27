@@ -87,14 +87,30 @@ func (r *fakeProjectRepository) Create(ctx context.Context, input project.Projec
 	return input, nil
 }
 
-func (r *fakeProjectRepository) ListByUserID(ctx context.Context, userID string) ([]project.Project, error) {
+func (r *fakeProjectRepository) ListByUserID(ctx context.Context, userID string, options project.ListOptions) (project.ListResult, error) {
 	var result []project.Project
 	for _, item := range r.items {
 		if item.UserID == userID {
 			result = append(result, item)
 		}
 	}
-	return result, nil
+
+	total := len(result)
+	start := options.Offset
+	if start > total {
+		start = total
+	}
+	end := start + options.Limit
+	if end > total {
+		end = total
+	}
+
+	return project.ListResult{
+		Projects: result[start:end],
+		Total:    total,
+		Limit:    options.Limit,
+		Offset:   options.Offset,
+	}, nil
 }
 
 func (r *fakeProjectRepository) FindByID(ctx context.Context, id string) (project.Project, error) {

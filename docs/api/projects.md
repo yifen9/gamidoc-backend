@@ -43,9 +43,16 @@ Response:
 | Field | Value |
 | --- | --- |
 | Auth | Yes |
-| Success | `200` `{ "projects": [...], "total": n }` |
-| Errors | `401 UNAUTHORIZED`, `500 INTERNAL_SERVER_ERROR` |
-| Notes | No pagination |
+| Success | `200` paginated project list |
+| Errors | `401 UNAUTHORIZED`, `400 INVALID_PAGINATION`, `500 INTERNAL_SERVER_ERROR` |
+| Notes | Supports `limit` and `offset`; default limit is `50`, maximum is `100` |
+
+Query parameters:
+
+| Name | Default | Notes |
+| --- | --- | --- |
+| `limit` | `50` | Clamped to `100` maximum |
+| `offset` | `0` | Zero-based row offset |
 
 Response:
 
@@ -66,7 +73,10 @@ Response:
       "updatedAt": "2026-05-05T12:00:00Z"
     }
   ],
-  "total": 1
+  "total": 1,
+  "limit": 50,
+  "offset": 0,
+  "hasMore": false
 }
 ```
 

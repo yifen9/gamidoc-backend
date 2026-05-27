@@ -21,8 +21,8 @@ func (r *fakeRepository) Create(ctx context.Context, input Project) (Project, er
 	return input, nil
 }
 
-func (r *fakeRepository) ListByUserID(ctx context.Context, userID string) ([]Project, error) {
-	return nil, nil
+func (r *fakeRepository) ListByUserID(ctx context.Context, userID string, options ListOptions) (ListResult, error) {
+	return ListResult{Limit: options.Limit, Offset: options.Offset}, nil
 }
 
 func (r *fakeRepository) FindByID(ctx context.Context, id string) (Project, error) {

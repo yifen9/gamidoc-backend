@@ -76,6 +76,7 @@ Template helpers:
 Operational notes:
 
 - Custom templates require `PDF_HTML_RENDERER_URL` to point to a Gotenberg-compatible `/forms/chromium/convert/html` endpoint.
+- The Docker Compose production stack includes `gamidoc-backend-prod-gotenberg`; `.env.prod.example` points `PDF_HTML_RENDERER_URL` at that service.
 - HTML templates are capped at 128 KB and CSS at 64 KB.
 - JavaScript and inline event-handler attributes are rejected.
 - The backend injects the `css` field into the document `<head>` or wraps body fragments in a complete HTML document.

@@ -42,7 +42,20 @@ func (r *ProjectRepository) Create(ctx context.Context, input project.Project) (
 	return scanProject(row)
 }
 
-func (r *ProjectRepository) ListByUserID(ctx context.Context, userID string) ([]project.Project, error) {
+func (r *ProjectRepository) ListByUserID(ctx context.Context, userID string, options project.ListOptions) (project.ListResult, error) {
+	var total int
+	if err := r.db.sql.QueryRowContext(
+		ctx,
+		`
+		SELECT COUNT(*)
+		FROM projects
+		WHERE user_id = $1
+		`,
+		userID,
+	).Scan(&total); err != nil {
+		return project.ListResult{}, err
+	}
+
 	rows, err := r.db.sql.QueryContext(
 		ctx,
 		`
@@ -50,11 +63,14 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID string) ([]
 		FROM projects
 		WHERE user_id = $1
 		ORDER BY updated_at DESC
+		LIMIT $2 OFFSET $3
 		`,
 		userID,
+		options.Limit,
+		options.Offset,
 	)
 	if err != nil {
-		return nil, err
+		return project.ListResult{}, err
 	}
 	defer rows.Close()
 
@@ -62,16 +78,21 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID string) ([]
 	for rows.Next() {
 		found, err := scanProject(rows)
 		if err != nil {
-			return nil, err
+			return project.ListResult{}, err
 		}
 		result = append(result, found)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return project.ListResult{}, err
 	}
 
-	return result, nil
+	return project.ListResult{
+		Projects: result,
+		Total:    total,
+		Limit:    options.Limit,
+		Offset:   options.Offset,
+	}, nil
 }
 
 func (r *ProjectRepository) FindByID(ctx context.Context, id string) (project.Project, error) {

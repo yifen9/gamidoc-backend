@@ -91,6 +91,7 @@ func New(cfg config.Config) (*App, error) {
 	projectRepository := postgres.NewProjectRepository(pg)
 	activityRepository := postgres.NewActivityRepository(pg)
 	activityService := activity.NewService(activityRepository)
+	activityHandler := activity.NewHandler(activityService, tokenManager, tokenBlacklist)
 	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
 
 	projectService := project.NewService(projectRepository, sessionRepository, wizardService, recommendationService)
@@ -147,6 +148,7 @@ func New(cfg config.Config) (*App, error) {
 		Redis:              application.redis,
 		TokenManager:       tokenManager,
 		TokenBlacklist:     tokenBlacklist,
+		ActivityHandler:    activityHandler.Routes(),
 		AuthHandler:        authHandler.Routes(),
 		ProjectHandler:     projectHandler,
 		SessionHandler:     sessionHandler,

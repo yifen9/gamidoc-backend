@@ -69,16 +69,24 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projects, err := h.service.List(r.Context(), userID)
+	options, err := parseListOptions(r)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		response.WriteError(w, http.StatusBadRequest, "INVALID_PAGINATION", "Invalid pagination parameters", nil)
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, map[string]any{
-		"projects": projects,
-		"total":    len(projects),
-	})
+	result, err := h.service.List(r.Context(), userID, options)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidPagination):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_PAGINATION", "Invalid pagination parameters", nil)
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +116,29 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteJSON(w, http.StatusOK, found)
+}
+
+func parseListOptions(r *http.Request) (ListOptions, error) {
+	query := r.URL.Query()
+	options := ListOptions{}
+
+	if raw := query.Get("limit"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			return ListOptions{}, err
+		}
+		options.Limit = value
+	}
+
+	if raw := query.Get("offset"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			return ListOptions{}, err
+		}
+		options.Offset = value
+	}
+
+	return options, nil
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request) {

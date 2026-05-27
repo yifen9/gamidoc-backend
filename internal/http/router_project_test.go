@@ -32,6 +32,78 @@ func TestCreateProjectRoute(t *testing.T) {
 	}
 }
 
+func TestListProjectRouteSupportsPagination(t *testing.T) {
+	tokenValue := authToken()
+	handler := testProjectHandler()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		TokenManager:   testTokenManager(),
+		ProjectHandler: handler,
+	})
+
+	for _, name := range []string{"First", "Second", "Third"} {
+		body := `{"name":"` + name + `","description":"Test"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/projects", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+tokenValue)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected create status %d, got %d", http.StatusCreated, rec.Code)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects?limit=2&offset=1", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenValue)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	var body struct {
+		Projects []project.Project `json:"projects"`
+		Total    int               `json:"total"`
+		Limit    int               `json:"limit"`
+		Offset   int               `json:"offset"`
+		HasMore  bool              `json:"hasMore"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(body.Projects) != 2 {
+		t.Fatalf("expected 2 projects, got %d", len(body.Projects))
+	}
+	if body.Total != 3 || body.Limit != 2 || body.Offset != 1 {
+		t.Fatalf("unexpected pagination body: %+v", body)
+	}
+	if body.HasMore {
+		t.Fatal("expected hasMore false for final page")
+	}
+}
+
+func TestListProjectRouteRejectsInvalidPagination(t *testing.T) {
+	tokenValue := authToken()
+
+	router := NewRouter(Dependencies{
+		Logger:         testLogger(),
+		TokenManager:   testTokenManager(),
+		ProjectHandler: testProjectHandler(),
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects?limit=-1", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenValue)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+	}
+}
+
 func TestSaveProjectStepRoute(t *testing.T) {
 	tokenValue := authToken()
 	handler := testProjectHandler()

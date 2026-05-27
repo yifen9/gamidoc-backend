@@ -32,6 +32,7 @@ type Dependencies struct {
 	Redis              redisReadyChecker
 	TokenManager       *token.Manager
 	TokenBlacklist     *token.Blacklist
+	ActivityHandler    http.Handler
 	AuthHandler        http.Handler
 	ProjectHandler     *project.Handler
 	SessionHandler     *session.Handler
@@ -123,6 +124,10 @@ func NewRouter(deps Dependencies) http.Handler {
 
 		if deps.AuthHandler != nil {
 			r.Mount("/auth", deps.AuthHandler)
+		}
+
+		if deps.ActivityHandler != nil {
+			r.Mount("/activity", deps.ActivityHandler)
 		}
 
 		if deps.ProjectHandler != nil {

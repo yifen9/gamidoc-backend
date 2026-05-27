@@ -14,6 +14,12 @@ import (
 var ErrInvalidProjectName = errors.New("invalid project name")
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbiddenProject = errors.New("forbidden project")
+var ErrInvalidPagination = errors.New("invalid pagination")
+
+const (
+	DefaultListLimit = 50
+	MaxListLimit     = 100
+)
 
 type SessionSource struct {
 	Wizard wizard.Status
@@ -56,6 +62,19 @@ type ConvertInput struct {
 
 type SaveStepInput struct {
 	StepData json.RawMessage `json:"stepData"`
+}
+
+type ListOptions struct {
+	Limit  int
+	Offset int
+}
+
+type ListResult struct {
+	Projects []Project `json:"projects"`
+	Total    int       `json:"total"`
+	Limit    int       `json:"limit"`
+	Offset   int       `json:"offset"`
+	HasMore  bool      `json:"hasMore"`
 }
 
 func NewService(projects Repository, sessions SessionProjectReader, wizardService *wizard.Service, recommendationService *recommendation.Service) *Service {
@@ -121,8 +140,20 @@ func (s *Service) CreateFromSession(ctx context.Context, userID string, sessionI
 	return created, nil
 }
 
-func (s *Service) List(ctx context.Context, userID string) ([]Project, error) {
-	return s.projects.ListByUserID(ctx, userID)
+func (s *Service) List(ctx context.Context, userID string, options ListOptions) (ListResult, error) {
+	options = normalizeListOptions(options)
+	if options.Limit <= 0 || options.Limit > MaxListLimit || options.Offset < 0 {
+		return ListResult{}, ErrInvalidPagination
+	}
+
+	result, err := s.projects.ListByUserID(ctx, userID, options)
+	if err != nil {
+		return ListResult{}, err
+	}
+	result.Limit = options.Limit
+	result.Offset = options.Offset
+	result.HasMore = options.Offset+len(result.Projects) < result.Total
+	return result, nil
 }
 
 func (s *Service) Get(ctx context.Context, userID string, projectID string) (Project, error) {
@@ -136,6 +167,16 @@ func (s *Service) Get(ctx context.Context, userID string, projectID string) (Pro
 	}
 
 	return found, nil
+}
+
+func normalizeListOptions(options ListOptions) ListOptions {
+	if options.Limit == 0 {
+		options.Limit = DefaultListLimit
+	}
+	if options.Limit > MaxListLimit {
+		options.Limit = MaxListLimit
+	}
+	return options
 }
 
 func (s *Service) SaveStep(ctx context.Context, userID string, projectID string, stepNumber int, stepData json.RawMessage) (Project, error) {

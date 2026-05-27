@@ -22,6 +22,7 @@ const (
 	EventPDFDownloaded           = "pdf_downloaded"
 	EventSessionCreated          = "session_created"
 	EventSessionConverted        = "session_converted"
+	EventFrontendPrefix          = "frontend_"
 )
 
 type Event struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,6 +63,23 @@ func (m *fakeMailer) Send(ctx context.Context, message mailer.Message) (mailer.S
 		m.result.Provider = "fake"
 	}
 	return m.result, nil
+}
+
+type fakeHTMLRenderer struct {
+	data []byte
+	html string
+	err  error
+}
+
+func (r *fakeHTMLRenderer) Render(ctx context.Context, document HTMLDocument) ([]byte, error) {
+	r.html = document.HTML
+	if r.err != nil {
+		return nil, r.err
+	}
+	if len(r.data) == 0 {
+		return []byte("%PDF fake custom"), nil
+	}
+	return r.data, nil
 }
 
 type fakeProjectRecommendationService struct {
@@ -278,5 +296,109 @@ func TestGenerateProjectPDFRejectsInvalidNotifyEmail(t *testing.T) {
 	_, err := service.GenerateProjectPDF(context.Background(), "user-1", "project-1", "not-an-email")
 	if !errors.Is(err, ErrInvalidNotifyEmail) {
 		t.Fatalf("expected ErrInvalidNotifyEmail, got %v", err)
+	}
+}
+
+func TestGenerateProjectPDFWithCustomTemplate(t *testing.T) {
+	store := &fakeObjectStore{}
+	renderer := &fakeHTMLRenderer{}
+	projectRepo := &fakeProjectPDFRepository{
+		item: project.Project{
+			ID:        "project-1",
+			UserID:    "user-1",
+			Name:      "My Project",
+			CreatedAt: time.Now(),
+			Wizard: wizard.Status{
+				CurrentStep: 4,
+				IsComplete:  true,
+				Steps: map[string]json.RawMessage{
+					"1": json.RawMessage(`{"evaluationGoals":["Usability & Playability"],"projectType":"Concept test","participants":"Limited set of participants","developmentStage":"Concept idea"}`),
+					"2": json.RawMessage(`{"selectedMethods":["surveys"]}`),
+					"3": json.RawMessage(`{"selectedInstruments":["SUS"]}`),
+					"4": json.RawMessage(`{"nextSteps":["Run evaluation"],"notes":"Pilot first."}`),
+				},
+			},
+		},
+	}
+
+	rec := recommendation.Result{
+		ForStep: 2,
+		Recommendations: []recommendation.Recommendation{
+			{ID: "surveys", Name: "Surveys & Questionnaires", Priority: "Recommended"},
+		},
+	}
+
+	service := NewService(
+		NewBuilder(),
+		NewFPDFGenerator(),
+		store,
+		&fakeMailer{},
+		"noreply@example.com",
+		"GamiDoc",
+		projectRepo,
+		&fakeSessionPDFRepository{},
+		&fakeProjectRecommendationService{result: rec},
+		&fakeSessionRecommendationService{},
+	).WithHTMLRenderer(renderer)
+
+	result, err := service.GenerateProjectPDFWithOptions(context.Background(), "user-1", "project-1", GenerateOptions{
+		Template: &CustomTemplate{
+			HTML: `<h1>{{ .Title }}</h1><p>{{ .ProjectType }}</p>`,
+			CSS:  `h1 { color: red; }`,
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.URL == "" {
+		t.Fatal("expected pdf url")
+	}
+	if !strings.Contains(renderer.html, "<h1>My Project</h1>") {
+		t.Fatalf("expected rendered html to include project title, got %s", renderer.html)
+	}
+	if len(store.items) != 1 {
+		t.Fatalf("expected one stored pdf, got %d", len(store.items))
+	}
+}
+
+func TestGenerateProjectPDFWithCustomTemplateRequiresRenderer(t *testing.T) {
+	projectRepo := &fakeProjectPDFRepository{
+		item: project.Project{
+			ID:        "project-1",
+			UserID:    "user-1",
+			Name:      "My Project",
+			CreatedAt: time.Now(),
+			Wizard: wizard.Status{
+				CurrentStep: 4,
+				IsComplete:  true,
+				Steps: map[string]json.RawMessage{
+					"1": json.RawMessage(`{"evaluationGoals":["Usability & Playability"],"projectType":"Concept test","participants":"Limited set of participants","developmentStage":"Concept idea"}`),
+					"2": json.RawMessage(`{"selectedMethods":["surveys"]}`),
+					"3": json.RawMessage(`{"selectedInstruments":["SUS"]}`),
+					"4": json.RawMessage(`{"nextSteps":["Run evaluation"]}`),
+				},
+			},
+		},
+	}
+
+	service := NewService(
+		NewBuilder(),
+		NewFPDFGenerator(),
+		&fakeObjectStore{},
+		&fakeMailer{},
+		"noreply@example.com",
+		"GamiDoc",
+		projectRepo,
+		&fakeSessionPDFRepository{},
+		&fakeProjectRecommendationService{},
+		&fakeSessionRecommendationService{},
+	)
+
+	_, err := service.GenerateProjectPDFWithOptions(context.Background(), "user-1", "project-1", GenerateOptions{
+		Template: &CustomTemplate{HTML: `<h1>{{ .Title }}</h1>`},
+	})
+	if !errors.Is(err, ErrPDFRendererUnavailable) {
+		t.Fatalf("expected ErrPDFRendererUnavailable, got %v", err)
 	}
 }

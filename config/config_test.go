@@ -132,6 +132,20 @@ func TestLoadParsesCSVOrigins(t *testing.T) {
 	}
 }
 
+func TestLoadParsesPDFHTMLRendererConfig(t *testing.T) {
+	t.Setenv("PDF_HTML_RENDERER_URL", "http://renderer/forms/chromium/convert/html")
+	t.Setenv("PDF_HTML_RENDERER_TIMEOUT", "12s")
+
+	cfg := Load()
+
+	if cfg.PDFHTMLRendererURL != "http://renderer/forms/chromium/convert/html" {
+		t.Fatalf("unexpected renderer url %q", cfg.PDFHTMLRendererURL)
+	}
+	if cfg.PDFHTMLRendererTimeout.String() != "12s" {
+		t.Fatalf("unexpected renderer timeout %s", cfg.PDFHTMLRendererTimeout)
+	}
+}
+
 func TestMain(m *testing.M) {
 	code := m.Run()
 	os.Exit(code)

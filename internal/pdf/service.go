@@ -44,6 +44,7 @@ type SessionRecommendationService interface {
 type Service struct {
 	builder                *Builder
 	generator              Generator
+	htmlRenderer           HTMLRenderer
 	store                  objectstore.ObjectStore
 	mailer                 mailer.Mailer
 	mailerFromEmail        string
@@ -80,10 +81,21 @@ func NewService(
 	}
 }
 
+func (s *Service) WithHTMLRenderer(renderer HTMLRenderer) *Service {
+	s.htmlRenderer = renderer
+	return s
+}
+
 func (s *Service) GenerateProjectPDF(ctx context.Context, userID string, projectID string, notifyEmail string) (Generated, error) {
-	notifyEmail = strings.TrimSpace(notifyEmail)
-	if notifyEmail != "" {
-		if _, err := mail.ParseAddress(notifyEmail); err != nil {
+	return s.GenerateProjectPDFWithOptions(ctx, userID, projectID, GenerateOptions{
+		NotifyEmail: notifyEmail,
+	})
+}
+
+func (s *Service) GenerateProjectPDFWithOptions(ctx context.Context, userID string, projectID string, options GenerateOptions) (Generated, error) {
+	options.NotifyEmail = strings.TrimSpace(options.NotifyEmail)
+	if options.NotifyEmail != "" {
+		if _, err := mail.ParseAddress(options.NotifyEmail); err != nil {
 			return Generated{}, ErrInvalidNotifyEmail
 		}
 	}
@@ -116,7 +128,7 @@ func (s *Service) GenerateProjectPDF(ctx context.Context, userID string, project
 		return Generated{}, err
 	}
 
-	bytes, err := s.generator.Generate(data)
+	bytes, err := s.renderPDF(ctx, data, options)
 	if err != nil {
 		return Generated{}, err
 	}
@@ -131,7 +143,7 @@ func (s *Service) GenerateProjectPDF(ctx context.Context, userID string, project
 		return Generated{}, err
 	}
 
-	emailDelivery := s.sendPDFReadyEmail(ctx, notifyEmail, item.Name, url)
+	emailDelivery := s.sendPDFReadyEmail(ctx, options.NotifyEmail, item.Name, url)
 
 	return Generated{
 		Key:   key,
@@ -141,9 +153,15 @@ func (s *Service) GenerateProjectPDF(ctx context.Context, userID string, project
 }
 
 func (s *Service) GenerateSessionPDF(ctx context.Context, sessionID string, notifyEmail string) (Generated, error) {
-	notifyEmail = strings.TrimSpace(notifyEmail)
-	if notifyEmail != "" {
-		if _, err := mail.ParseAddress(notifyEmail); err != nil {
+	return s.GenerateSessionPDFWithOptions(ctx, sessionID, GenerateOptions{
+		NotifyEmail: notifyEmail,
+	})
+}
+
+func (s *Service) GenerateSessionPDFWithOptions(ctx context.Context, sessionID string, options GenerateOptions) (Generated, error) {
+	options.NotifyEmail = strings.TrimSpace(options.NotifyEmail)
+	if options.NotifyEmail != "" {
+		if _, err := mail.ParseAddress(options.NotifyEmail); err != nil {
 			return Generated{}, ErrInvalidNotifyEmail
 		}
 	}
@@ -172,7 +190,7 @@ func (s *Service) GenerateSessionPDF(ctx context.Context, sessionID string, noti
 		return Generated{}, err
 	}
 
-	bytes, err := s.generator.Generate(data)
+	bytes, err := s.renderPDF(ctx, data, options)
 	if err != nil {
 		return Generated{}, err
 	}
@@ -187,13 +205,29 @@ func (s *Service) GenerateSessionPDF(ctx context.Context, sessionID string, noti
 		return Generated{}, err
 	}
 
-	emailDelivery := s.sendPDFReadyEmail(ctx, notifyEmail, "Anonymous Evaluation Plan", url)
+	emailDelivery := s.sendPDFReadyEmail(ctx, options.NotifyEmail, "Anonymous Evaluation Plan", url)
 
 	return Generated{
 		Key:   key,
 		URL:   url,
 		Email: emailDelivery,
 	}, nil
+}
+
+func (s *Service) renderPDF(ctx context.Context, data PlanData, options GenerateOptions) ([]byte, error) {
+	if options.Template == nil {
+		return s.generator.Generate(data)
+	}
+	if s.htmlRenderer == nil {
+		return nil, ErrPDFRendererUnavailable
+	}
+
+	html, err := RenderCustomHTML(data, *options.Template)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.htmlRenderer.Render(ctx, HTMLDocument{HTML: html})
 }
 
 func (s *Service) Download(ctx context.Context, key string) ([]byte, error) {

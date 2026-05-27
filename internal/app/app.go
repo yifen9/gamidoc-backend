@@ -128,6 +128,9 @@ func New(cfg config.Config) (*App, error) {
 		projectService,
 		sessionService,
 	)
+	if strings.TrimSpace(cfg.PDFHTMLRendererURL) != "" {
+		pdfService.WithHTMLRenderer(pdf.NewGotenbergHTMLRenderer(cfg.PDFHTMLRendererURL, cfg.PDFHTMLRendererTimeout))
+	}
 	pdfHandler := pdf.NewHandler(pdfService)
 
 	application := &App{
@@ -163,6 +166,7 @@ func New(cfg config.Config) (*App, error) {
 		"migrations_dir", summary["migrations_dir"],
 		"object_storage_provider", summary["object_storage_provider"],
 		"mailer_provider", summary["mailer_provider"],
+		"pdf_html_renderer", summary["pdf_html_renderer"],
 		"recommendation_rules", summary["recommendation_rules"],
 	)
 

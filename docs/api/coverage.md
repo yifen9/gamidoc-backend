@@ -7,7 +7,7 @@
 | Phase 1, anonymous MVP | Passed | Anonymous session flow passed API testing, including wizard saves, recommendations, PDF generation, and PDF download |
 | Phase 2, auth and project work | Partial | Register, login, refresh, logout, and protected project routes exist; local tests pass, but deployed registration should be retested with production Redis/Postgres settings |
 | Phase 3, session conversion | Passed locally | Conversion creates a project from the session, copies an existing PDF reference, and deletes the source session |
-| Phase 4, refinement and optimization | Partial | Activity tracking is implemented, but performance, centralized monitoring, and PDF format requirements were not fully verified |
+| Phase 4, refinement and optimization | Partial | Activity tracking and custom HTML/CSS PDF templates are implemented, but performance, centralized monitoring, and PDF format requirements were not fully verified |
 
 ## Observed Test Results
 
@@ -27,6 +27,7 @@
 - Project listing has no pagination
 - PDF generation still returns a public storage URL; authenticated project download and anonymous session download endpoints are also available
 - Production object storage and email are not enabled on the test deployment
+- Custom HTML/CSS PDF templates require `PDF_HTML_RENDERER_URL` to be configured with a Gotenberg-compatible renderer
 - PDF/A and PDF 1.7 output were not verified
 - Performance and external monitoring requirements were not fully verified
 
@@ -34,5 +35,6 @@
 
 - `GET /files/pdfs/*` serves public PDF bytes
 - `activity_events` stores API request and key user-flow activity records
+- PDF generation accepts an optional `template` object for custom HTML/CSS rendering when an HTML renderer is configured
 - The error envelope is always `{ "error": { "code", "message", "details" } }`
 - `OPTIONS` requests return `204 No Content`; CORS allow headers are added only for allowed origins

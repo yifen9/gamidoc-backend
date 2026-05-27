@@ -19,6 +19,11 @@ type Handler struct {
 	service *Service
 }
 
+type generateRequest struct {
+	NotifyEmail string          `json:"notifyEmail"`
+	Template    *CustomTemplate `json:"template,omitempty"`
+}
+
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
@@ -36,15 +41,16 @@ func (h *Handler) ProjectGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input struct {
-		NotifyEmail string `json:"notifyEmail"`
-	}
+	var input generateRequest
 	if err := decodeOptionalJSON(r, &input); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
 		return
 	}
 
-	result, err := h.service.GenerateProjectPDF(r.Context(), userID, projectID, input.NotifyEmail)
+	result, err := h.service.GenerateProjectPDFWithOptions(r.Context(), userID, projectID, GenerateOptions{
+		NotifyEmail: input.NotifyEmail,
+		Template:    input.Template,
+	})
 	if err != nil {
 		switch {
 		case errors.Is(err, project.ErrProjectNotFound):
@@ -55,6 +61,10 @@ func (h *Handler) ProjectGenerate(w http.ResponseWriter, r *http.Request) {
 			response.WriteError(w, http.StatusBadRequest, "WIZARD_INCOMPLETE", "Wizard is incomplete", nil)
 		case errors.Is(err, ErrInvalidNotifyEmail):
 			response.WriteError(w, http.StatusBadRequest, "INVALID_NOTIFY_EMAIL", "Invalid notify email", map[string]any{"field": "notifyEmail"})
+		case errors.Is(err, ErrInvalidPDFTemplate):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_PDF_TEMPLATE", "Invalid PDF template", map[string]any{"field": "template"})
+		case errors.Is(err, ErrPDFRendererUnavailable):
+			response.WriteError(w, http.StatusServiceUnavailable, "PDF_RENDERER_UNAVAILABLE", "Custom PDF renderer is not configured", nil)
 		default:
 			response.WriteError(w, http.StatusInternalServerError, "PDF_GENERATION_FAILED", "PDF generation failed", nil)
 		}
@@ -74,15 +84,16 @@ func (h *Handler) SessionGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input struct {
-		NotifyEmail string `json:"notifyEmail"`
-	}
+	var input generateRequest
 	if err := decodeOptionalJSON(r, &input); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
 		return
 	}
 
-	result, err := h.service.GenerateSessionPDF(r.Context(), sessionID, input.NotifyEmail)
+	result, err := h.service.GenerateSessionPDFWithOptions(r.Context(), sessionID, GenerateOptions{
+		NotifyEmail: input.NotifyEmail,
+		Template:    input.Template,
+	})
 	if err != nil {
 		switch {
 		case errors.Is(err, session.ErrSessionNotFound):
@@ -91,6 +102,10 @@ func (h *Handler) SessionGenerate(w http.ResponseWriter, r *http.Request) {
 			response.WriteError(w, http.StatusBadRequest, "WIZARD_INCOMPLETE", "Wizard is incomplete", nil)
 		case errors.Is(err, ErrInvalidNotifyEmail):
 			response.WriteError(w, http.StatusBadRequest, "INVALID_NOTIFY_EMAIL", "Invalid notify email", map[string]any{"field": "notifyEmail"})
+		case errors.Is(err, ErrInvalidPDFTemplate):
+			response.WriteError(w, http.StatusBadRequest, "INVALID_PDF_TEMPLATE", "Invalid PDF template", map[string]any{"field": "template"})
+		case errors.Is(err, ErrPDFRendererUnavailable):
+			response.WriteError(w, http.StatusServiceUnavailable, "PDF_RENDERER_UNAVAILABLE", "Custom PDF renderer is not configured", nil)
 		default:
 			response.WriteError(w, http.StatusInternalServerError, "PDF_GENERATION_FAILED", "PDF generation failed", nil)
 		}

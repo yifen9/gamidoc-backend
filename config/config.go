@@ -59,6 +59,9 @@ type Config struct {
 	ResendAPIKey    string
 	ResendBaseURL   string
 
+	PDFHTMLRendererURL     string
+	PDFHTMLRendererTimeout time.Duration
+
 	RecommendationRulesPath string
 }
 
@@ -106,6 +109,8 @@ func Load() Config {
 		MailerFromName:                 getEnv("MAILER_FROM_NAME", "GamiDoc"),
 		ResendAPIKey:                   getEnv("RESEND_API_KEY", ""),
 		ResendBaseURL:                  getEnv("RESEND_BASE_URL", "https://api.resend.com"),
+		PDFHTMLRendererURL:             getEnv("PDF_HTML_RENDERER_URL", ""),
+		PDFHTMLRendererTimeout:         parseDurationWithFallback(getEnv("PDF_HTML_RENDERER_TIMEOUT", "30s"), 30*time.Second),
 		RecommendationRulesPath:        getEnv("RECOMMENDATION_RULES_PATH", "rule/recommendations.json"),
 	}
 }
@@ -160,6 +165,9 @@ func (c Config) ValidateCore() error {
 	}
 	if strings.EqualFold(strings.TrimSpace(c.AppEnv), "production") && c.JWTSecret == "dev-secret" {
 		return errors.New("jwt secret must not use the development default in production")
+	}
+	if strings.TrimSpace(c.PDFHTMLRendererURL) != "" && c.PDFHTMLRendererTimeout <= 0 {
+		return errors.New("pdf html renderer timeout must be positive")
 	}
 	return nil
 }
@@ -280,6 +288,7 @@ func (c Config) SafeSummary() map[string]any {
 		"migrations_dir":          c.MigrationsDir,
 		"object_storage_provider": c.ObjectStorageProviderNormalized(),
 		"mailer_provider":         c.MailerProviderNormalized(),
+		"pdf_html_renderer":       strings.TrimSpace(c.PDFHTMLRendererURL) != "",
 		"recommendation_rules":    c.RecommendationRulesPath,
 	}
 }

@@ -6,7 +6,7 @@
 | --- | --- |
 | Auth | Yes |
 | Success | `200` `{ pdfUrl, email }` |
-| Errors | `401 UNAUTHORIZED`, `400 INVALID_INPUT`, `400 WIZARD_INCOMPLETE`, `400 INVALID_NOTIFY_EMAIL`, `403 FORBIDDEN`, `404 PROJECT_NOT_FOUND`, `500 PDF_GENERATION_FAILED` |
+| Errors | `401 UNAUTHORIZED`, `400 INVALID_INPUT`, `400 WIZARD_INCOMPLETE`, `400 INVALID_NOTIFY_EMAIL`, `400 INVALID_PDF_TEMPLATE`, `403 FORBIDDEN`, `404 PROJECT_NOT_FOUND`, `503 PDF_RENDERER_UNAVAILABLE`, `500 PDF_GENERATION_FAILED` |
 | Notes | `notifyEmail` is optional and the returned URL points to public storage |
 
 Response shape:
@@ -30,8 +30,55 @@ Response shape:
 | --- | --- |
 | Auth | No |
 | Success | `200` `{ pdfUrl, email }` |
-| Errors | `400 INVALID_INPUT`, `400 WIZARD_INCOMPLETE`, `400 INVALID_NOTIFY_EMAIL`, `404 SESSION_NOT_FOUND`, `500 PDF_GENERATION_FAILED` |
+| Errors | `400 INVALID_INPUT`, `400 WIZARD_INCOMPLETE`, `400 INVALID_NOTIFY_EMAIL`, `400 INVALID_PDF_TEMPLATE`, `404 SESSION_NOT_FOUND`, `503 PDF_RENDERER_UNAVAILABLE`, `500 PDF_GENERATION_FAILED` |
 | Notes | Same response shape as the project PDF route |
+
+## Custom HTML/CSS Templates
+
+PDF generation routes accept an optional `template` object. If omitted, the backend uses the built-in FPDF layout.
+
+```json
+{
+  "notifyEmail": "qa@example.com",
+  "template": {
+    "html": "<main><h1>{{ .Title }}</h1><p>{{ join .EvaluationGoals \", \" }}</p></main>",
+    "css": "body { font-family: Inter, sans-serif; } h1 { color: #2a578d; }"
+  }
+}
+```
+
+Template data is the generated evaluation plan:
+
+- `.Title`
+- `.Date`
+- `.EvaluationGoals`
+- `.ProjectType`
+- `.Participants`
+- `.DevelopmentStage`
+- `.Accessibility`
+- `.TimeConstraint`
+- `.ExtraConstraints`
+- `.ResearchEnabled`
+- `.ResearchObjective`
+- `.ResearchQuestions`
+- `.Hypotheses`
+- `.SelectedMethods`
+- `.SelectedInstruments`
+- `.NextSteps`
+- `.Notes`
+
+Template helpers:
+
+- `{{ join .EvaluationGoals ", " }}`
+- `{{ formatDate .Date "January 2, 2006" }}`
+- `{{ default .Notes "No notes provided." }}`
+
+Operational notes:
+
+- Custom templates require `PDF_HTML_RENDERER_URL` to point to a Gotenberg-compatible `/forms/chromium/convert/html` endpoint.
+- HTML templates are capped at 128 KB and CSS at 64 KB.
+- JavaScript and inline event-handler attributes are rejected.
+- The backend injects the `css` field into the document `<head>` or wraps body fragments in a complete HTML document.
 
 ## `GET /files/pdfs/*`
 

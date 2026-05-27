@@ -32,6 +32,13 @@ type PlanData struct {
 	ProjectType         string
 	Participants        string
 	DevelopmentStage    string
+	Accessibility       string
+	TimeConstraint      string
+	ExtraConstraints    []string
+	ResearchEnabled     bool
+	ResearchObjective   string
+	ResearchQuestions   []string
+	Hypotheses          []string
 	SelectedMethods     []MethodEntry
 	SelectedInstruments []InstrumentEntry
 	NextSteps           []string

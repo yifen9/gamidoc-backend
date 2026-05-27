@@ -5,6 +5,8 @@ import "context"
 type ObjectStore interface {
 	Save(ctx context.Context, key string, data []byte) (string, error)
 	Read(ctx context.Context, key string) ([]byte, error)
+	Delete(ctx context.Context, key string) error
+	KeyFromURL(url string) (string, bool)
 }
 
 func buildPublicURL(baseURL string, key string) string {

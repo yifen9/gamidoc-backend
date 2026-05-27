@@ -41,6 +41,22 @@ func (e *Engine) Recommend(input Input) []Recommendation {
 			continue
 		}
 
+		if !matchesAny(input.Accessibility, rule.RequiredAccessibility) {
+			continue
+		}
+
+		if !matchesAny(input.Time, rule.RequiredTime) {
+			continue
+		}
+
+		if !matchesAnyInSlice(input.ExtraConstraints, rule.RequiredExtraConstraints) {
+			continue
+		}
+
+		if rule.RequiredResearchEnabled != nil && *rule.RequiredResearchEnabled != input.ResearchEnabled {
+			continue
+		}
+
 		for _, rec := range rule.Recommendations {
 			if seen[rec.ID] {
 				continue
@@ -87,6 +103,24 @@ func matchesAny(have string, required []string) bool {
 	}
 	for _, item := range required {
 		if have == item {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesAnyInSlice returns true if at least one element of required
+// is present in have, or if required is empty (no constraint).
+func matchesAnyInSlice(have []string, required []string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	set := map[string]bool{}
+	for _, item := range have {
+		set[item] = true
+	}
+	for _, item := range required {
+		if set[item] {
 			return true
 		}
 	}

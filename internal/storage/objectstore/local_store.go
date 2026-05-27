@@ -36,3 +36,21 @@ func (s *LocalStore) Read(ctx context.Context, key string) ([]byte, error) {
 	path := filepath.Join(s.rootDir, filepath.FromSlash(trimLeftSlash(key)))
 	return os.ReadFile(path)
 }
+
+func (s *LocalStore) Delete(ctx context.Context, key string) error {
+	path := filepath.Join(s.rootDir, filepath.FromSlash(trimLeftSlash(key)))
+	err := os.Remove(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+func (s *LocalStore) KeyFromURL(url string) (string, bool) {
+	base := trimRightSlash(s.baseURL)
+	prefix := base + "/"
+	if len(url) <= len(prefix) || url[:len(prefix)] != prefix {
+		return "", false
+	}
+	return url[len(prefix):], true
+}

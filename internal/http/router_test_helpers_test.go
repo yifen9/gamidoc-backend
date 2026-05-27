@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gamidoc/backend/internal/auth"
 	"github.com/gamidoc/backend/internal/mailer"
 	"github.com/gamidoc/backend/internal/pdf"
@@ -17,6 +18,7 @@ import (
 	"github.com/gamidoc/backend/internal/token"
 	"github.com/gamidoc/backend/internal/user"
 	"github.com/gamidoc/backend/internal/wizard"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 type fakePostgres struct {
@@ -268,7 +270,7 @@ func testTokenManager() *token.Manager {
 
 func authToken() string {
 	manager := testTokenManager()
-	value, _ := manager.Generate("user-1", "test@example.com")
+	value, _ := manager.Generate("user-1")
 	return value
 }
 
@@ -278,13 +280,18 @@ func tTempDir() string {
 }
 
 func testAuthHandler() http.Handler {
+	mr, _ := miniredis.Run()
+	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
+
 	repo := &fakeUserRepository{
 		usersByEmail: map[string]user.User{},
 		usersByID:    map[string]user.User{},
 	}
 	manager := testTokenManager()
-	service := auth.NewService(repo, manager)
-	handler := auth.NewHandler(service, manager)
+	refreshStore := token.NewRefreshStore(rdb, 7*24*time.Hour)
+	blacklist := token.NewBlacklist(rdb)
+	service := auth.NewService(repo, manager, refreshStore, blacklist)
+	handler := auth.NewHandler(service, manager, blacklist, 7*24*time.Hour, false)
 	return handler.Routes()
 }
 

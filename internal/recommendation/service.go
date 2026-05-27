@@ -2,11 +2,34 @@ package recommendation
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gamidoc/backend/internal/wizard"
 )
 
 var ErrInvalidRecommendationStep = errors.New("invalid recommendation step")
+
+// methodNameToID maps the display names stored by the frontend to the rule IDs
+// used in recommendations.json. Any name not found here is normalised by
+// lower-casing and replacing spaces with hyphens.
+var methodNameToID = map[string]string{
+	"Think-aloud testing":      "think-aloud",
+	"Surveys & Questionnaires": "surveys",
+	"Heuristic evaluation":     "heuristic-evaluation",
+	"Expert review":            "expert-review",
+	"Interview":                "interview",
+	"Observation":              "observation",
+	"Focus Group":              "focus-group",
+	"Diary Study":              "diary-study",
+	"Experience Report":        "experience-report",
+}
+
+func normalizeMethodName(name string) string {
+	if id, ok := methodNameToID[name]; ok {
+		return id
+	}
+	return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+}
 
 type Service struct {
 	engine *Engine
@@ -19,6 +42,10 @@ type Input struct {
 	Participants     string
 	DevelopmentStage string
 	SelectedMethods  []string
+	Accessibility    string
+	Time             string
+	ExtraConstraints []string
+	ResearchEnabled  bool
 }
 
 func NewService(engine *Engine) *Service {
@@ -41,10 +68,18 @@ func (s *Service) Recommend(status wizard.Status, forStep int) (Result, error) {
 		input.ProjectType = step1.ProjectType
 		input.Participants = step1.Participants
 		input.DevelopmentStage = step1.DevelopmentStage
+		input.Accessibility = step1.Accessibility
+		input.Time = step1.Time
+		input.ExtraConstraints = step1.ExtraConstraints
+		input.ResearchEnabled = step1.ResearchEnabled
 	}
 
 	if step2, ok := wizard.DecodeStep2(status); ok {
-		input.SelectedMethods = step2.SelectedMethods
+		normalized := make([]string, len(step2.SelectedMethods))
+		for i, name := range step2.SelectedMethods {
+			normalized[i] = normalizeMethodName(name)
+		}
+		input.SelectedMethods = normalized
 	}
 
 	return Result{

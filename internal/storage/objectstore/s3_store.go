@@ -92,6 +92,26 @@ func (s *S3Store) Read(ctx context.Context, key string) ([]byte, error) {
 	return io.ReadAll(output.Body)
 }
 
+func (s *S3Store) Delete(ctx context.Context, key string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &s.bucket,
+		Key:    stringPtr(trimLeftSlash(key)),
+	})
+	return err
+}
+
+func (s *S3Store) KeyFromURL(url string) (string, bool) {
+	base := trimRightSlash(s.baseURL)
+	prefix := base + "/"
+	if len(url) <= len(prefix) || url[:len(prefix)] != prefix {
+		return "", false
+	}
+	return url[len(prefix):], true
+}
+
 func stringPtr(value string) *string {
 	return &value
 }

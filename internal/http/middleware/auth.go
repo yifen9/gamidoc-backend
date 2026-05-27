@@ -10,9 +10,13 @@ import (
 )
 
 type authUserIDKey struct{}
-type authEmailKey struct{}
 
-func RequireAuth(manager *token.Manager) func(http.Handler) http.Handler {
+func RequireAuth(manager *token.Manager, blacklists ...*token.Blacklist) func(http.Handler) http.Handler {
+	var blacklist *token.Blacklist
+	if len(blacklists) > 0 {
+		blacklist = blacklists[0]
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if manager == nil {
@@ -38,9 +42,16 @@ func RequireAuth(manager *token.Manager) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), authUserIDKey{}, claims.UserID)
-			ctx = context.WithValue(ctx, authEmailKey{}, claims.Email)
+			// Check jti blacklist
+			if blacklist != nil && claims.ID != "" {
+				revoked, err := blacklist.IsBlacklisted(r.Context(), claims.ID)
+				if err == nil && revoked {
+					response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Token has been revoked", nil)
+					return
+				}
+			}
 
+			ctx := context.WithValue(r.Context(), authUserIDKey{}, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -48,14 +59,6 @@ func RequireAuth(manager *token.Manager) func(http.Handler) http.Handler {
 
 func GetAuthUserID(ctx context.Context) string {
 	value, ok := ctx.Value(authUserIDKey{}).(string)
-	if !ok {
-		return ""
-	}
-	return value
-}
-
-func GetAuthEmail(ctx context.Context) string {
-	value, ok := ctx.Value(authEmailKey{}).(string)
 	if !ok {
 		return ""
 	}

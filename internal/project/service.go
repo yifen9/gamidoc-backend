@@ -19,11 +19,18 @@ type SessionWizardReader interface {
 	FindWizardByID(ctx context.Context, sessionID string) (wizard.Status, error)
 }
 
+// PDFCleaner allows deleting a stored PDF file by URL.
+type PDFCleaner interface {
+	KeyFromURL(url string) (string, bool)
+	Delete(ctx context.Context, key string) error
+}
+
 type Service struct {
 	projects        Repository
 	sessions        SessionWizardReader
 	wizard          *wizard.Service
 	recommendations *recommendation.Service
+	store           PDFCleaner
 }
 
 type CreateInput struct {
@@ -32,8 +39,8 @@ type CreateInput struct {
 }
 
 type UpdateInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
 }
 
 type ConvertInput struct {
@@ -52,6 +59,11 @@ func NewService(projects Repository, sessions SessionWizardReader, wizardService
 		wizard:          wizardService,
 		recommendations: recommendationService,
 	}
+}
+
+func (s *Service) WithPDFCleaner(store PDFCleaner) *Service {
+	s.store = store
+	return s
 }
 
 func (s *Service) Create(ctx context.Context, userID string, input CreateInput) (Project, error) {
@@ -151,11 +163,17 @@ func (s *Service) Update(ctx context.Context, userID string, projectID string, i
 		return Project{}, ErrForbiddenProject
 	}
 
-	name := strings.TrimSpace(input.Name)
-	description := strings.TrimSpace(input.Description)
+	name := found.Name
+	if input.Name != nil {
+		name = strings.TrimSpace(*input.Name)
+		if name == "" {
+			return Project{}, ErrInvalidProjectName
+		}
+	}
 
-	if name == "" {
-		return Project{}, ErrInvalidProjectName
+	description := found.Description
+	if input.Description != nil {
+		description = strings.TrimSpace(*input.Description)
 	}
 
 	return s.projects.UpdateInfo(ctx, projectID, name, description)
@@ -169,6 +187,12 @@ func (s *Service) Delete(ctx context.Context, userID string, projectID string) e
 
 	if found.UserID != userID {
 		return ErrForbiddenProject
+	}
+
+	if s.store != nil && found.PDFURL != nil {
+		if key, ok := s.store.KeyFromURL(*found.PDFURL); ok {
+			_ = s.store.Delete(ctx, key)
+		}
 	}
 
 	return s.projects.Delete(ctx, projectID)

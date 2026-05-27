@@ -17,6 +17,7 @@ import (
 )
 
 var ErrInvalidNotifyEmail = fmt.Errorf("invalid notify email")
+var ErrPDFNotFound = fmt.Errorf("pdf not found")
 
 type ProjectRepository interface {
 	FindByID(ctx context.Context, id string) (project.Project, error)
@@ -196,6 +197,39 @@ func (s *Service) GenerateSessionPDF(ctx context.Context, sessionID string, noti
 }
 
 func (s *Service) Download(ctx context.Context, key string) ([]byte, error) {
+	return s.store.Read(ctx, key)
+}
+
+func (s *Service) DownloadProjectPDF(ctx context.Context, userID, projectID string) ([]byte, error) {
+	item, err := s.projects.FindByID(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if item.UserID != userID {
+		return nil, project.ErrForbiddenProject
+	}
+	if item.PDFURL == nil {
+		return nil, ErrPDFNotFound
+	}
+	key, ok := s.store.KeyFromURL(*item.PDFURL)
+	if !ok {
+		return nil, ErrPDFNotFound
+	}
+	return s.store.Read(ctx, key)
+}
+
+func (s *Service) DownloadSessionPDF(ctx context.Context, sessionID string) ([]byte, error) {
+	item, err := s.sessions.FindByID(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	if item.PDFURL == nil {
+		return nil, ErrPDFNotFound
+	}
+	key, ok := s.store.KeyFromURL(*item.PDFURL)
+	if !ok {
+		return nil, ErrPDFNotFound
+	}
 	return s.store.Read(ctx, key)
 }
 

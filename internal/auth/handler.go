@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	appmiddleware "github.com/gamidoc/backend/internal/http/middleware"
 	"github.com/gamidoc/backend/internal/http/response"
@@ -12,15 +14,23 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const refreshCookieName = "refresh_token"
+
 type Handler struct {
 	service      *Service
 	tokenManager *token.Manager
+	blacklist    *token.Blacklist
+	refreshTTL   time.Duration
+	secureCookie bool
 }
 
-func NewHandler(service *Service, tokenManager *token.Manager) *Handler {
+func NewHandler(service *Service, tokenManager *token.Manager, blacklist *token.Blacklist, refreshTTL time.Duration, secureCookie bool) *Handler {
 	return &Handler{
 		service:      service,
 		tokenManager: tokenManager,
+		blacklist:    blacklist,
+		refreshTTL:   refreshTTL,
+		secureCookie: secureCookie,
 	}
 }
 
@@ -29,7 +39,9 @@ func (h *Handler) Routes() chi.Router {
 
 	r.Post("/register", h.register)
 	r.Post("/login", h.login)
-	r.With(appmiddleware.RequireAuth(h.tokenManager)).Get("/me", h.me)
+	r.Post("/refresh", h.refresh)
+	r.Post("/logout", h.logout)
+	r.With(appmiddleware.RequireAuth(h.tokenManager, h.blacklist)).Get("/me", h.me)
 
 	return r
 }
@@ -56,7 +68,11 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusCreated, result)
+	h.setRefreshCookie(w, result.RefreshToken)
+	response.WriteJSON(w, http.StatusCreated, map[string]any{
+		"access_token": result.AccessToken,
+		"user":         result.User,
+	})
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +93,54 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, result)
+	h.setRefreshCookie(w, result.RefreshToken)
+	response.WriteJSON(w, http.StatusOK, map[string]any{
+		"access_token": result.AccessToken,
+		"user":         result.User,
+	})
+}
+
+func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(refreshCookieName)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing refresh token", nil)
+		return
+	}
+
+	result, err := h.service.Refresh(r.Context(), cookie.Value)
+	if err != nil {
+		h.clearRefreshCookie(w)
+		response.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid or expired refresh token", nil)
+		return
+	}
+
+	h.setRefreshCookie(w, result.RefreshToken)
+	response.WriteJSON(w, http.StatusOK, map[string]any{
+		"access_token": result.AccessToken,
+		"user":         result.User,
+	})
+}
+
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+	// Extract access token from Authorization header
+	accessToken := ""
+	if header := r.Header.Get("Authorization"); header != "" {
+		parts := strings.SplitN(header, " ", 2)
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			accessToken = parts[1]
+		}
+	}
+
+	// Extract refresh token from cookie
+	refreshToken := ""
+	if cookie, err := r.Cookie(refreshCookieName); err == nil {
+		refreshToken = cookie.Value
+	}
+
+	_ = h.service.Logout(r.Context(), accessToken, refreshToken)
+
+	h.clearRefreshCookie(w)
+	response.WriteJSON(w, http.StatusOK, map[string]any{"status": "ok"})
 }
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
@@ -98,4 +161,28 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteJSON(w, http.StatusOK, currentUser)
+}
+
+func (h *Handler) setRefreshCookie(w http.ResponseWriter, tokenValue string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshCookieName,
+		Value:    tokenValue,
+		Path:     "/api/v1/auth",
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(h.refreshTTL.Seconds()),
+	})
+}
+
+func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshCookieName,
+		Value:    "",
+		Path:     "/api/v1/auth",
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
 }

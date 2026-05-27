@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gamidoc/backend/config"
 	"github.com/gamidoc/backend/internal/auth"
@@ -42,7 +43,7 @@ func New(cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
-	redisClient := rediscache.New(cfg.RedisAddr())
+	redisClient := rediscache.New(cfg.RedisAddr(), cfg.RedisPassword, cfg.RedisTLS)
 
 	startupCtx, cancel := context.WithTimeout(context.Background(), cfg.HTTPReadTimeout)
 	defer cancel()
@@ -66,6 +67,8 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	tokenManager := token.NewManager(cfg.JWTSecret, cfg.JWTExpiresIn)
+	refreshStore := token.NewRefreshStore(redisClient.Raw(), cfg.RefreshTokenTTL)
+	tokenBlacklist := token.NewBlacklist(redisClient.Raw())
 
 	wizardService := wizard.NewService()
 
@@ -78,9 +81,11 @@ func New(cfg config.Config) (*App, error) {
 	recommendationEngine := recommendation.NewEngine(rules)
 	recommendationService := recommendation.NewService(recommendationEngine)
 
+	secureCookie := strings.EqualFold(strings.TrimSpace(cfg.AppEnv), "production")
+
 	userRepository := postgres.NewUserRepository(pg)
-	authService := auth.NewService(userRepository, tokenManager)
-	authHandler := auth.NewHandler(authService, tokenManager)
+	authService := auth.NewService(userRepository, tokenManager, refreshStore, tokenBlacklist)
+	authHandler := auth.NewHandler(authService, tokenManager, tokenBlacklist, cfg.RefreshTokenTTL, secureCookie)
 
 	projectRepository := postgres.NewProjectRepository(pg)
 	sessionRepository := rediscache.NewSessionRepository(redisClient, cfg.SessionTTL)
@@ -97,6 +102,7 @@ func New(cfg config.Config) (*App, error) {
 		_ = redisClient.Close()
 		return nil, err
 	}
+	projectService.WithPDFCleaner(store)
 
 	m, err := bootstrap.NewMailer(cfg)
 	if err != nil {
@@ -133,6 +139,7 @@ func New(cfg config.Config) (*App, error) {
 		Postgres:           application.pg,
 		Redis:              application.redis,
 		TokenManager:       tokenManager,
+		TokenBlacklist:     tokenBlacklist,
 		AuthHandler:        authHandler.Routes(),
 		ProjectHandler:     projectHandler,
 		SessionHandler:     sessionHandler,

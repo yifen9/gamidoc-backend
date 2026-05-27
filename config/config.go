@@ -29,12 +29,17 @@ type Config struct {
 	PostgresDB       string
 	PostgresUser     string
 	PostgresPassword string
+	PostgresSSLMode  string
 
-	RedisHost string
-	RedisPort string
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisTLS      bool
 
 	JWTSecret    string
 	JWTExpiresIn time.Duration
+
+	RefreshTokenTTL time.Duration
 
 	SessionTTL time.Duration
 
@@ -58,7 +63,8 @@ type Config struct {
 }
 
 func Load() Config {
-	expiresIn := parseDurationWithFallback(getEnv("JWT_EXPIRES_IN", "24h"), 24*time.Hour)
+	expiresIn := parseDurationWithFallback(getEnv("JWT_EXPIRES_IN", "15m"), 15*time.Minute)
+	refreshTTL := parseDurationWithFallback(getEnv("REFRESH_TOKEN_TTL", "168h"), 168*time.Hour)
 	sessionTTL := parseDurationWithFallback(getEnv("SESSION_TTL", "48h"), 48*time.Hour)
 
 	return Config{
@@ -77,10 +83,14 @@ func Load() Config {
 		PostgresDB:                     getEnv("POSTGRES_DB", "gamidoc"),
 		PostgresUser:                   getEnv("POSTGRES_USER", "gamidoc"),
 		PostgresPassword:               getEnv("POSTGRES_PASSWORD", "gamidoc"),
+		PostgresSSLMode:                getEnv("POSTGRES_SSLMODE", "disable"),
 		RedisHost:                      getEnv("REDIS_HOST", "localhost"),
 		RedisPort:                      getEnv("REDIS_PORT", "6379"),
+		RedisPassword:                  getEnv("REDIS_PASSWORD", ""),
+		RedisTLS:                       getEnvBool("REDIS_TLS", false),
 		JWTSecret:                      getEnv("JWT_SECRET", "dev-secret"),
 		JWTExpiresIn:                   expiresIn,
+		RefreshTokenTTL:                refreshTTL,
 		SessionTTL:                     sessionTTL,
 		ObjectStorageProvider:          getEnv("OBJECT_STORAGE_PROVIDER", "local"),
 		ObjectStoragePublicBaseURL:     getEnv("OBJECT_STORAGE_PUBLIC_BASE_URL", getEnv("PDF_BASE_URL", "/files/pdfs")),
@@ -156,23 +166,25 @@ func (c Config) ValidateCore() error {
 
 func (c Config) PostgresDSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%s dbname=%s user=%s password=%s sslmode=disable",
+		"host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
 		c.PostgresHost,
 		c.PostgresPort,
 		c.PostgresDB,
 		c.PostgresUser,
 		c.PostgresPassword,
+		c.PostgresSSLMode,
 	)
 }
 
 func (c Config) PostgresURL() string {
 	return fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
+		"postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		c.PostgresUser,
 		c.PostgresPassword,
 		c.PostgresHost,
 		c.PostgresPort,
 		c.PostgresDB,
+		c.PostgresSSLMode,
 	)
 }
 

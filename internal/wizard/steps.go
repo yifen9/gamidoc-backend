@@ -54,9 +54,6 @@ func ValidateStep(stepNumber int, stepData json.RawMessage) error {
 		if !hasNonEmpty(data.EvaluationGoals) {
 			return ErrInvalidStepData
 		}
-		if strings.TrimSpace(data.ProjectType) == "" {
-			return ErrInvalidStepData
-		}
 		if strings.TrimSpace(data.Participants) == "" {
 			return ErrInvalidStepData
 		}

@@ -14,7 +14,7 @@ func NewEngine(rules []Rule) *Engine {
 
 func (e *Engine) Recommend(input Input) []Recommendation {
 	var result []Recommendation
-	seen := map[string]bool{}
+	indexByID := map[string]int{}
 
 	for _, rule := range e.rules {
 		if rule.ForStep != input.ForStep {
@@ -57,11 +57,17 @@ func (e *Engine) Recommend(input Input) []Recommendation {
 			continue
 		}
 
+		signals := matchedSignals(input, rule)
+
 		for _, rec := range rule.Recommendations {
-			if seen[rec.ID] {
+			if i, ok := indexByID[rec.ID]; ok {
+				// The same recommendation can be produced by several rules;
+				// collect every signal that justifies it.
+				result[i].MatchedOn = appendUniqueSignals(result[i].MatchedOn, signals)
 				continue
 			}
-			seen[rec.ID] = true
+			rec.MatchedOn = appendUniqueSignals(nil, signals)
+			indexByID[rec.ID] = len(result)
 			result = append(result, rec)
 		}
 	}
@@ -76,6 +82,65 @@ func (e *Engine) Recommend(input Input) []Recommendation {
 	})
 
 	return result
+}
+
+// matchedSignals reports which of the user's inputs a matching rule required.
+// A rule field left empty imposes no constraint and therefore yields no signal.
+func matchedSignals(input Input, rule Rule) []MatchedSignal {
+	var out []MatchedSignal
+
+	for _, goal := range rule.RequiredEvaluationGoals {
+		out = append(out, MatchedSignal{Kind: "goal", Value: goal})
+	}
+	for _, method := range rule.RequiredMethods {
+		out = append(out, MatchedSignal{Kind: "method", Value: method})
+	}
+	if len(rule.RequiredProjectTypes) > 0 && input.ProjectType != "" {
+		out = append(out, MatchedSignal{Kind: "projectType", Value: input.ProjectType})
+	}
+	if len(rule.RequiredParticipants) > 0 && input.Participants != "" {
+		out = append(out, MatchedSignal{Kind: "participants", Value: input.Participants})
+	}
+	if len(rule.RequiredDevelopmentStages) > 0 && input.DevelopmentStage != "" {
+		out = append(out, MatchedSignal{Kind: "developmentStage", Value: input.DevelopmentStage})
+	}
+	if len(rule.RequiredAccessibility) > 0 && input.Accessibility != "" {
+		out = append(out, MatchedSignal{Kind: "accessibility", Value: input.Accessibility})
+	}
+	if len(rule.RequiredTime) > 0 && input.Time != "" {
+		out = append(out, MatchedSignal{Kind: "time", Value: input.Time})
+	}
+	if len(rule.RequiredExtraConstraints) > 0 {
+		have := map[string]bool{}
+		for _, c := range input.ExtraConstraints {
+			have[c] = true
+		}
+		for _, c := range rule.RequiredExtraConstraints {
+			if have[c] {
+				out = append(out, MatchedSignal{Kind: "constraint", Value: c})
+			}
+		}
+	}
+	if rule.RequiredResearchEnabled != nil && *rule.RequiredResearchEnabled {
+		out = append(out, MatchedSignal{Kind: "research", Value: "Research specification"})
+	}
+
+	return out
+}
+
+func appendUniqueSignals(dst []MatchedSignal, src []MatchedSignal) []MatchedSignal {
+	seen := map[MatchedSignal]bool{}
+	for _, s := range dst {
+		seen[s] = true
+	}
+	for _, s := range src {
+		if seen[s] {
+			continue
+		}
+		seen[s] = true
+		dst = append(dst, s)
+	}
+	return dst
 }
 
 func matchesAll(have []string, required []string) bool {

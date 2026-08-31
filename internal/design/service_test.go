@@ -19,7 +19,7 @@ func traverse(t *testing.T, service *Service, path string) Status {
 	t.Helper()
 	status := NewInitialStatus()
 
-	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), false, false)
+	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func traverse(t *testing.T, service *Service, path string) Status {
 
 	order := Order(path)
 	for _, number := range order[1:] {
-		status, err = service.SaveSection(status, number, nil, false, true)
+		status, err = service.SaveSection(status, number, nil, nil, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -44,7 +44,7 @@ func TestFirstPassRequiresSectionOne(t *testing.T) {
 	service := NewService()
 	status := NewInitialStatus()
 
-	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), false, false); !errors.Is(err, ErrSectionLocked) {
+	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), nil, false); !errors.Is(err, ErrSectionLocked) {
 		t.Fatalf("expected ErrSectionLocked, got %v", err)
 	}
 }
@@ -57,12 +57,12 @@ func TestPathGate(t *testing.T) {
 		t.Fatalf("expected ErrSectionLocked, got %v", err)
 	}
 
-	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), false, false)
+	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), false, false); !errors.Is(err, ErrPathNotChosen) {
+	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), nil, false); !errors.Is(err, ErrPathNotChosen) {
 		t.Fatalf("expected ErrPathNotChosen, got %v", err)
 	}
 
@@ -84,7 +84,7 @@ func TestMechanicsFirstOrder(t *testing.T) {
 	service := NewService()
 	status := NewInitialStatus()
 
-	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), false, false)
+	status, err := service.SaveSection(status, 1, content(t, `{"draft":"context"}`), nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,11 +94,11 @@ func TestMechanicsFirstOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), false, false); !errors.Is(err, ErrSectionLocked) {
+	if _, err := service.SaveSection(status, 2, content(t, `{"a":1}`), nil, false); !errors.Is(err, ErrSectionLocked) {
 		t.Fatalf("expected ErrSectionLocked, got %v", err)
 	}
 
-	status, err = service.SaveSection(status, 4, content(t, `{"core":"points"}`), true, false)
+	status, err = service.SaveSection(status, 4, content(t, `{"core":"points"}`), boolPtr(true), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestSkipAdvancesWithoutContent(t *testing.T) {
 	service := NewService()
 	status := NewInitialStatus()
 
-	status, err := service.SaveSection(status, 1, nil, false, true)
+	status, err := service.SaveSection(status, 1, nil, nil, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestTraversalUnlocksFreeNavigation(t *testing.T) {
 		t.Fatal("expected first pass done")
 	}
 
-	status, err := service.SaveSection(status, 6, content(t, `{"impact":"co2"}`), true, false)
+	status, err := service.SaveSection(status, 6, content(t, `{"impact":"co2"}`), boolPtr(true), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestInvalidSectionData(t *testing.T) {
 	service := NewService()
 	status := NewInitialStatus()
 
-	if _, err := service.SaveSection(status, 1, json.RawMessage(`{invalid`), false, false); !errors.Is(err, ErrInvalidSectionData) {
+	if _, err := service.SaveSection(status, 1, json.RawMessage(`{invalid`), nil, false); !errors.Is(err, ErrInvalidSectionData) {
 		t.Fatalf("expected ErrInvalidSectionData, got %v", err)
 	}
 }
@@ -162,7 +162,7 @@ func TestDashboardGateAndPercentages(t *testing.T) {
 	}
 
 	status := traverse(t, service, PathExperienceFirst)
-	status, err := service.SaveSection(status, 2, content(t, `{"timeline":"weekly"}`), true, false)
+	status, err := service.SaveSection(status, 2, content(t, `{"timeline":"weekly"}`), boolPtr(true), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestApplyPrefillFillsOnlyEmptySections(t *testing.T) {
 	service := NewService()
 	status := NewInitialStatus()
 
-	status, err := service.SaveSection(status, 1, content(t, `{"draft":"mine"}`), false, false)
+	status, err := service.SaveSection(status, 1, content(t, `{"draft":"mine"}`), nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,5 +214,60 @@ func TestSaveSparkTrims(t *testing.T) {
 
 	if status.Spark != "a gamified commuting app" {
 		t.Fatalf("unexpected spark %q", status.Spark)
+	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func TestFirstPassAllowsResaveOfVisitedSections(t *testing.T) {
+	service := NewService()
+	status := NewInitialStatus()
+
+	status, err := service.SaveSection(status, 1, content(t, `{"draft":"v1"}`), nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	status, err = service.SaveSection(status, 1, content(t, `{"draft":"v2"}`), nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Cursor != 1 {
+		t.Fatalf("expected cursor to stay at 1, got %d", status.Cursor)
+	}
+	if string(status.Section(1).Content) != `{"draft":"v2"}` {
+		t.Fatal("expected re-save to update content")
+	}
+
+	if _, err := service.SaveSection(status, 3, content(t, `{"a":1}`), nil, false); !errors.Is(err, ErrPathNotChosen) {
+		t.Fatalf("expected ErrPathNotChosen for the frontier, got %v", err)
+	}
+}
+
+func TestCompletePointerPreservesFlag(t *testing.T) {
+	service := NewService()
+	status := traverse(t, service, PathExperienceFirst)
+
+	status, err := service.SaveSection(status, 2, content(t, `{"a":1}`), boolPtr(true), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	status, err = service.SaveSection(status, 2, content(t, `{"a":2}`), nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.Section(2).Complete {
+		t.Fatal("expected omitted complete flag to preserve completion")
+	}
+
+	status, err = service.SaveSection(status, 2, content(t, `{"a":3}`), boolPtr(false), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Section(2).Complete {
+		t.Fatal("expected explicit false to clear completion")
 	}
 }

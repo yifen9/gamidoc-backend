@@ -44,8 +44,22 @@ var sectionNames = map[int]string{
 	7: "Evaluation & Feedback",
 }
 
+var sectionDescriptions = map[int]string{
+	1: "The domain, target audience, and problem the gamified system addresses.",
+	2: "How the experience unfolds over time, from first contact to long-term use.",
+	3: "Personas or player types and the social dynamics between them.",
+	4: "The central game mechanics, rules, and reward structures.",
+	5: "Platforms, devices, integrations, and technical constraints.",
+	6: "The intended behavioural, learning, or business outcomes.",
+	7: "How the system's effect is measured and how feedback reaches users.",
+}
+
 func SectionName(number int) string {
 	return sectionNames[number]
+}
+
+func SectionDescription(number int) string {
+	return sectionDescriptions[number]
 }
 
 func Order(path string) []int {
@@ -71,6 +85,7 @@ type Status struct {
 	Cursor        int                     `json:"cursor"`
 	FirstPassDone bool                    `json:"firstPassDone"`
 	Sections      map[string]SectionState `json:"sections"`
+	Reports       []Report                `json:"reports,omitempty"`
 }
 
 func NewInitialStatus() Status {
@@ -121,6 +136,7 @@ func SectionPercent(state SectionState) int {
 type DashboardSection struct {
 	SectionNumber int    `json:"sectionNumber"`
 	Name          string `json:"name"`
+	Description   string `json:"description"`
 	Status        string `json:"status"`
 	Percent       int    `json:"percent"`
 }

@@ -142,16 +142,20 @@ func New(cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
-	designHandler := design.NewHandler(
-		design.NewService(),
+	designReports := design.NewReportService(
 		assistant,
 		design.NewReportBuilder(),
 		store,
+		postgres.NewDesignReportRepository(pg),
+	)
+	designHandler := design.NewHandler(
+		design.NewService(),
+		assistant,
+		designReports,
 		sessionRepository,
 		rediscache.NewDesignRepository(redisClient, cfg.SessionTTL),
 		projectRepository,
 		postgres.NewDesignStateRepository(pg),
-		postgres.NewDesignReportRepository(pg),
 	)
 
 	application := &App{

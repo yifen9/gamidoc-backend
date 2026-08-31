@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -74,17 +73,24 @@ func SectionLines(content json.RawMessage) []string {
 		return nil
 	}
 
-	var object map[string]any
-	if err := json.Unmarshal(content, &object); err == nil {
-		keys := make([]string, 0, len(object))
-		for key := range object {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	token, err := decoder.Token()
+	if err != nil {
+		return []string{string(content)}
+	}
 
+	if delim, ok := token.(json.Delim); ok && delim == '{' {
 		var lines []string
-		for _, key := range keys {
-			lines = append(lines, fmt.Sprintf("%s: %s", key, flattenValue(object[key])))
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return []string{string(content)}
+			}
+			var value any
+			if err := decoder.Decode(&value); err != nil {
+				return []string{string(content)}
+			}
+			lines = append(lines, fmt.Sprintf("%v: %s", keyToken, flattenValue(value)))
 		}
 		return lines
 	}

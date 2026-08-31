@@ -75,9 +75,19 @@ func (a *NoopAssistant) Prefill(ctx context.Context, spark string, sections []Se
 }
 
 func (a *NoopAssistant) Enhance(ctx context.Context, sections []SectionText) ([]SectionText, error) {
+	seen := map[string]bool{}
 	result := make([]SectionText, 0, len(sections))
 	for _, section := range sections {
-		section.Text = strings.Join(strings.Fields(strings.TrimSpace(section.Text)), " ")
+		var kept []string
+		for _, line := range strings.Split(section.Text, "\n") {
+			normalized := strings.Join(strings.Fields(strings.TrimSpace(line)), " ")
+			if normalized == "" || seen[strings.ToLower(normalized)] {
+				continue
+			}
+			seen[strings.ToLower(normalized)] = true
+			kept = append(kept, normalized)
+		}
+		section.Text = strings.Join(kept, " ")
 		result = append(result, section)
 	}
 	return result, nil

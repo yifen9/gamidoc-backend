@@ -152,7 +152,6 @@ func NewRouter(deps Dependencies) http.Handler {
 		if deps.DesignHandler != nil {
 			r.Mount("/sessions/{sessionId}/design", deps.DesignHandler.SessionRoutes())
 			r.With(appmiddleware.RequireAuth(deps.TokenManager, deps.TokenBlacklist)).Mount("/projects/{projectId}/design", deps.DesignHandler.ProjectRoutes())
-			r.Mount("/ai", deps.DesignHandler.AIRoutes())
 		}
 	})
 

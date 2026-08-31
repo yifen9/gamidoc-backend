@@ -48,7 +48,20 @@ func (r *DesignRepository) Save(ctx context.Context, id string, status design.St
 		return err
 	}
 
-	return r.client.Raw().Set(ctx, r.key(id), payload, r.ttl).Err()
+	key := r.key(id)
+	if err := r.client.Raw().SetArgs(ctx, key, payload, goredis.SetArgs{KeepTTL: true}).Err(); err != nil {
+		return err
+	}
+
+	ttl, err := r.client.Raw().TTL(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	if ttl < 0 {
+		return r.client.Raw().Expire(ctx, key, r.ttl).Err()
+	}
+
+	return nil
 }
 
 func (r *DesignRepository) key(id string) string {

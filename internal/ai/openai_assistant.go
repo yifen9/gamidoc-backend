@@ -15,7 +15,6 @@ type OpenAIAssistant struct {
 	apiKey  string
 	model   string
 	client  *http.Client
-	noop    *NoopAssistant
 }
 
 func NewOpenAIAssistant(baseURL string, apiKey string, model string, client *http.Client) *OpenAIAssistant {
@@ -27,7 +26,6 @@ func NewOpenAIAssistant(baseURL string, apiKey string, model string, client *htt
 		apiKey:  apiKey,
 		model:   model,
 		client:  client,
-		noop:    NewNoopAssistant(),
 	}
 }
 
@@ -144,7 +142,7 @@ func (a *OpenAIAssistant) Prefill(ctx context.Context, spark string, sections []
 
 	var decoded map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(answer), &decoded); err != nil {
-		return a.noop.Prefill(ctx, spark, sections)
+		return nil, fmt.Errorf("ai provider returned unparseable prefill: %w", err)
 	}
 
 	result := make(map[int]json.RawMessage, len(decoded))
@@ -159,22 +157,39 @@ func (a *OpenAIAssistant) Prefill(ctx context.Context, spark string, sections []
 }
 
 func (a *OpenAIAssistant) Enhance(ctx context.Context, sections []SectionText) ([]SectionText, error) {
-	result := make([]SectionText, 0, len(sections))
+	var filtered []SectionText
+	var parts []string
 	for _, section := range sections {
 		if strings.TrimSpace(section.Text) == "" {
 			continue
 		}
-		enhanced, err := a.complete(ctx,
-			fmt.Sprintf(
-				"Rewrite the raw notes for the '%s' section of a gamification design report into naturally readable prose. Preserve the meaning and facts. Do not add new claims. Remove duplicated statements. Reply with the prose only.",
-				section.Name,
-			),
-			section.Text,
-		)
-		if err != nil {
-			return nil, err
+		filtered = append(filtered, section)
+		parts = append(parts, fmt.Sprintf("Section %d (%s):\n%s", section.Number, section.Name, section.Text))
+	}
+	if len(filtered) == 0 {
+		return nil, nil
+	}
+
+	answer, err := a.complete(ctx,
+		"Rewrite the raw notes of a gamification design report into naturally readable prose, section by section. Preserve the meaning and facts; do not add new claims. Where content repeats across sections, keep it in the most fitting section and drop the repetitions elsewhere. Reply with a JSON object whose keys are the section numbers as strings and whose values are the prose strings. Reply with JSON only.",
+		strings.Join(parts, "\n\n"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	answer = strings.TrimPrefix(answer, "```json")
+	answer = strings.Trim(answer, "` \n")
+
+	var decoded map[string]string
+	if err := json.Unmarshal([]byte(answer), &decoded); err != nil {
+		return nil, fmt.Errorf("ai provider returned unparseable enhancement: %w", err)
+	}
+
+	result := make([]SectionText, 0, len(filtered))
+	for _, section := range filtered {
+		if prose, ok := decoded[strconv.Itoa(section.Number)]; ok && strings.TrimSpace(prose) != "" {
+			section.Text = strings.TrimSpace(prose)
 		}
-		section.Text = enhanced
 		result = append(result, section)
 	}
 	return result, nil

@@ -50,13 +50,17 @@ func (s *Service) ChoosePath(current Status, path string) (Status, error) {
 	return current, nil
 }
 
-func (s *Service) SaveSection(current Status, number int, content json.RawMessage, complete bool, skip bool) (Status, error) {
+func (s *Service) SaveSection(current Status, number int, content json.RawMessage, complete *bool, skip bool) (Status, error) {
 	current = withSections(current)
 	if number < 1 || number > SectionCount {
 		return Status{}, ErrInvalidSectionNumber
 	}
 
-	if !current.FirstPassDone {
+	key := SectionKey(number)
+	state := current.Sections[key]
+	frontier := !current.FirstPassDone && !state.Visited
+
+	if frontier {
 		expected, err := s.nextSection(current)
 		if err != nil {
 			return Status{}, err
@@ -66,8 +70,6 @@ func (s *Service) SaveSection(current Status, number int, content json.RawMessag
 		}
 	}
 
-	key := SectionKey(number)
-	state := current.Sections[key]
 	state.Visited = true
 
 	if !skip {
@@ -75,12 +77,14 @@ func (s *Service) SaveSection(current Status, number int, content json.RawMessag
 			return Status{}, ErrInvalidSectionData
 		}
 		state.Content = content
-		state.Complete = complete
+		if complete != nil {
+			state.Complete = *complete
+		}
 	}
 
 	current.Sections[key] = state
 
-	if !current.FirstPassDone {
+	if frontier {
 		current.Cursor++
 		if current.Cursor >= SectionCount {
 			current.FirstPassDone = true
@@ -116,6 +120,7 @@ func (s *Service) Dashboard(current Status) (Dashboard, error) {
 		sections = append(sections, DashboardSection{
 			SectionNumber: number,
 			Name:          SectionName(number),
+			Description:   SectionDescription(number),
 			Status:        SectionStatus(state),
 			Percent:       percent,
 		})

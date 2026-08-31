@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -12,9 +13,7 @@ import (
 	"github.com/gamidoc/backend/internal/http/response"
 	"github.com/gamidoc/backend/internal/project"
 	"github.com/gamidoc/backend/internal/session"
-	"github.com/gamidoc/backend/internal/storage/objectstore"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type SessionGuard interface {
@@ -28,36 +27,30 @@ type ProjectGuard interface {
 type Handler struct {
 	service       *Service
 	assistant     ai.Assistant
-	builder       *ReportBuilder
-	store         objectstore.ObjectStore
+	reports       *ReportService
 	sessions      SessionGuard
 	sessionStates StateStore
 	projects      ProjectGuard
 	projectStates StateStore
-	reports       ReportRepository
 }
 
 func NewHandler(
 	service *Service,
 	assistant ai.Assistant,
-	builder *ReportBuilder,
-	store objectstore.ObjectStore,
+	reports *ReportService,
 	sessions SessionGuard,
 	sessionStates StateStore,
 	projects ProjectGuard,
 	projectStates StateStore,
-	reports ReportRepository,
 ) *Handler {
 	return &Handler{
 		service:       service,
 		assistant:     assistant,
-		builder:       builder,
-		store:         store,
+		reports:       reports,
 		sessions:      sessions,
 		sessionStates: sessionStates,
 		projects:      projects,
 		projectStates: projectStates,
-		reports:       reports,
 	}
 }
 
@@ -69,41 +62,29 @@ type owner struct {
 
 func (h *Handler) SessionRoutes() chi.Router {
 	r := chi.NewRouter()
-
-	r.Get("/", h.forSession(h.getState))
-	r.Put("/spark", h.forSession(h.saveSpark))
-	r.Get("/branch", h.forSession(h.branch))
-	r.Post("/path", h.forSession(h.choosePath))
-	r.Put("/section/{sectionNumber}", h.forSession(h.saveSection))
-	r.Get("/dashboard", h.forSession(h.dashboard))
-	r.Post("/generate-pdf", h.forSession(h.generatePDF))
-
+	h.mountShared(r, h.forSession)
 	return r
 }
 
 func (h *Handler) ProjectRoutes() chi.Router {
 	r := chi.NewRouter()
-
-	r.Get("/", h.forProject(h.getState))
-	r.Put("/spark", h.forProject(h.saveSpark))
-	r.Get("/branch", h.forProject(h.branch))
-	r.Post("/path", h.forProject(h.choosePath))
-	r.Put("/section/{sectionNumber}", h.forProject(h.saveSection))
-	r.Get("/dashboard", h.forProject(h.dashboard))
-	r.Post("/generate-pdf", h.forProject(h.generatePDF))
+	h.mountShared(r, h.forProject)
 	r.Get("/reports", h.forProject(h.listReports))
 	r.Post("/import-session", h.forProject(h.importSession))
-
 	return r
 }
 
-func (h *Handler) AIRoutes() chi.Router {
-	r := chi.NewRouter()
-
-	r.Post("/rewrite", h.rewrite)
-	r.Post("/chat", h.chat)
-
-	return r
+func (h *Handler) mountShared(r chi.Router, guard func(func(http.ResponseWriter, *http.Request, owner)) http.HandlerFunc) {
+	r.Get("/", guard(h.getState))
+	r.Put("/spark", guard(h.saveSpark))
+	r.Get("/branch", guard(h.branch))
+	r.Post("/path", guard(h.choosePath))
+	r.Put("/section/{sectionNumber}", guard(h.saveSection))
+	r.Get("/dashboard", guard(h.dashboard))
+	r.Post("/generate-pdf", guard(h.generatePDF))
+	r.Get("/faq/{sectionNumber}", guard(h.faq))
+	r.Post("/ai/rewrite", guard(h.rewrite))
+	r.Post("/ai/chat", guard(h.chat))
 }
 
 func (h *Handler) forSession(next func(http.ResponseWriter, *http.Request, owner)) http.HandlerFunc {
@@ -160,6 +141,14 @@ func (h *Handler) forProject(next func(http.ResponseWriter, *http.Request, owner
 	}
 }
 
+func decodeOptional(r *http.Request, target any) error {
+	err := json.NewDecoder(r.Body).Decode(target)
+	if err != nil && errors.Is(err, io.EOF) {
+		return nil
+	}
+	return err
+}
+
 func (h *Handler) getState(w http.ResponseWriter, r *http.Request, o owner) {
 	status, err := o.states.Get(r.Context(), o.id)
 	if err != nil {
@@ -179,6 +168,12 @@ func (h *Handler) saveSpark(w http.ResponseWriter, r *http.Request, o owner) {
 		return
 	}
 
+	var prefill map[int]json.RawMessage
+	var prefillErr error
+	if input.Spark != "" {
+		prefill, prefillErr = h.assistant.Prefill(r.Context(), input.Spark, sectionsMeta())
+	}
+
 	status, err := o.states.Get(r.Context(), o.id)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
@@ -187,15 +182,14 @@ func (h *Handler) saveSpark(w http.ResponseWriter, r *http.Request, o owner) {
 
 	status = h.service.SaveSpark(status, input.Spark)
 
-	if status.Spark != "" {
-		prefill, err := h.assistant.Prefill(r.Context(), status.Spark, sectionsMeta())
-		if err == nil {
-			converted := make(map[string]json.RawMessage, len(prefill))
-			for number, content := range prefill {
-				converted[SectionKey(number)] = content
-			}
-			status = h.service.ApplyPrefill(status, converted)
+	applied := false
+	if prefillErr == nil && len(prefill) > 0 {
+		converted := make(map[string]json.RawMessage, len(prefill))
+		for number, content := range prefill {
+			converted[SectionKey(number)] = content
 		}
+		status = h.service.ApplyPrefill(status, converted)
+		applied = true
 	}
 
 	if err := o.states.Save(r.Context(), o.id, status); err != nil {
@@ -203,7 +197,11 @@ func (h *Handler) saveSpark(w http.ResponseWriter, r *http.Request, o owner) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, status)
+	response.WriteJSON(w, http.StatusOK, map[string]any{
+		"designStatus":   status,
+		"prefillApplied": applied,
+		"prefillFailed":  prefillErr != nil,
+	})
 }
 
 func (h *Handler) branch(w http.ResponseWriter, r *http.Request, o owner) {
@@ -284,7 +282,7 @@ func (h *Handler) saveSection(w http.ResponseWriter, r *http.Request, o owner) {
 
 	var input struct {
 		Content  json.RawMessage `json:"content"`
-		Complete bool            `json:"complete"`
+		Complete *bool           `json:"complete"`
 		Skip     bool            `json:"skip"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -348,18 +346,9 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request, o owner) {
 }
 
 func (h *Handler) generatePDF(w http.ResponseWriter, r *http.Request, o owner) {
-	var input struct {
-		Version string `json:"version"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var input struct{}
+	if err := decodeOptional(r, &input); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "INVALID_INPUT", "Invalid request body", nil)
-		return
-	}
-	if input.Version == "" {
-		input.Version = ReportVersionStandard
-	}
-	if input.Version != ReportVersionStandard && input.Version != ReportVersionEnhanced {
-		response.WriteError(w, http.StatusBadRequest, "INVALID_REPORT_VERSION", "Invalid report version", nil)
 		return
 	}
 
@@ -374,100 +363,25 @@ func (h *Handler) generatePDF(w http.ResponseWriter, r *http.Request, o owner) {
 		return
 	}
 
-	sections, err := h.renderSections(r.Context(), status, input.Version)
+	generated, err := h.reports.Generate(r.Context(), o.kind, o.id, status)
 	if err != nil {
 		response.WriteError(w, http.StatusBadGateway, "AI_PROVIDER_ERROR", "AI provider error", nil)
 		return
 	}
 
-	data, err := h.builder.Build("Gamification Design Report", input.Version, status.Spark, sections)
-	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
-		return
-	}
-
-	reportID := uuid.NewString()
-	url, err := h.store.Save(r.Context(), "design/"+o.kind+"/"+o.id+"/"+reportID+".pdf", data)
-	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
-		return
-	}
-
-	if o.kind == "projects" {
-		created, err := h.reports.Create(r.Context(), Report{
-			ID:        reportID,
-			ProjectID: o.id,
-			Version:   input.Version,
-			URL:       url,
-		})
-		if err != nil {
+	if o.kind == "sessions" {
+		status.Reports = append(status.Reports, generated.Standard, generated.Enhanced)
+		if err := o.states.Save(r.Context(), o.id, status); err != nil {
 			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
 			return
 		}
-		response.WriteJSON(w, http.StatusOK, created)
-		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, map[string]any{
-		"reportId": reportID,
-		"version":  input.Version,
-		"url":      url,
-	})
-}
-
-func (h *Handler) renderSections(ctx context.Context, status Status, version string) ([]RenderSection, error) {
-	if version == ReportVersionStandard {
-		var sections []RenderSection
-		for number := 1; number <= SectionCount; number++ {
-			sections = append(sections, RenderSection{
-				Number: number,
-				Name:   SectionName(number),
-				Lines:  SectionLines(status.Section(number).Content),
-			})
-		}
-		return sections, nil
-	}
-
-	var inputs []ai.SectionText
-	for number := 1; number <= SectionCount; number++ {
-		text := SectionPlainText(status.Section(number).Content)
-		if text == "" {
-			continue
-		}
-		inputs = append(inputs, ai.SectionText{
-			Number: number,
-			Name:   SectionName(number),
-			Text:   text,
-		})
-	}
-
-	enhanced, err := h.assistant.Enhance(ctx, inputs)
-	if err != nil {
-		return nil, err
-	}
-
-	prose := make(map[int]string, len(enhanced))
-	for _, section := range enhanced {
-		prose[section.Number] = section.Text
-	}
-
-	var sections []RenderSection
-	for number := 1; number <= SectionCount; number++ {
-		var lines []string
-		if text, ok := prose[number]; ok && text != "" {
-			lines = []string{text}
-		}
-		sections = append(sections, RenderSection{
-			Number: number,
-			Name:   SectionName(number),
-			Lines:  lines,
-		})
-	}
-	return sections, nil
+	response.WriteJSON(w, http.StatusOK, generated)
 }
 
 func (h *Handler) listReports(w http.ResponseWriter, r *http.Request, o owner) {
-	reports, err := h.reports.ListByProjectID(r.Context(), o.id)
+	reports, err := h.reports.List(r.Context(), o.id)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
 		return
@@ -497,21 +411,59 @@ func (h *Handler) importSession(w http.ResponseWriter, r *http.Request, o owner)
 		return
 	}
 
-	status, err := h.sessionStates.Get(r.Context(), input.SessionID)
+	incoming, err := h.sessionStates.Get(r.Context(), input.SessionID)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
 		return
 	}
 
-	if err := o.states.Save(r.Context(), o.id, status); err != nil {
+	if !incoming.HasContent() && incoming.Spark == "" {
+		response.WriteError(w, http.StatusConflict, "SESSION_DESIGN_EMPTY", "Session has no design content to import", nil)
+		return
+	}
+
+	existing, err := o.states.Get(r.Context(), o.id)
+	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, status)
+	if existing.HasContent() {
+		response.WriteError(w, http.StatusConflict, "DESIGN_NOT_EMPTY", "Project already has design content", nil)
+		return
+	}
+
+	if len(incoming.Reports) > 0 {
+		if err := h.reports.Persist(r.Context(), o.id, incoming.Reports); err != nil {
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+			return
+		}
+		incoming.Reports = nil
+	}
+
+	if err := o.states.Save(r.Context(), o.id, incoming); err != nil {
+		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, incoming)
 }
 
-func (h *Handler) rewrite(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) faq(w http.ResponseWriter, r *http.Request, o owner) {
+	sectionValue := chi.URLParam(r, "sectionNumber")
+	sectionNumber, err := strconv.Atoi(sectionValue)
+	if err != nil || sectionNumber < 1 || sectionNumber > SectionCount {
+		response.WriteError(w, http.StatusBadRequest, "INVALID_SECTION_NUMBER", "Invalid section number", nil)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]any{
+		"sectionNumber": sectionNumber,
+		"faq":           SectionFAQ(sectionNumber),
+	})
+}
+
+func (h *Handler) rewrite(w http.ResponseWriter, r *http.Request, o owner) {
 	var input struct {
 		Text string `json:"text"`
 	}
@@ -536,7 +488,7 @@ func (h *Handler) rewrite(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) chat(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) chat(w http.ResponseWriter, r *http.Request, o owner) {
 	var input struct {
 		SectionNumber int    `json:"sectionNumber"`
 		Message       string `json:"message"`
@@ -562,6 +514,7 @@ func (h *Handler) chat(w http.ResponseWriter, r *http.Request) {
 	response.WriteJSON(w, http.StatusOK, map[string]any{
 		"sectionNumber": input.SectionNumber,
 		"reply":         reply,
+		"faq":           SectionFAQ(input.SectionNumber),
 	})
 }
 

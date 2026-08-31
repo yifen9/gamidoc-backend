@@ -12,6 +12,7 @@ import (
 	"github.com/gamidoc/backend/internal/activity"
 	"github.com/gamidoc/backend/internal/auth"
 	"github.com/gamidoc/backend/internal/bootstrap"
+	"github.com/gamidoc/backend/internal/design"
 	apphttp "github.com/gamidoc/backend/internal/http"
 	"github.com/gamidoc/backend/internal/migrate"
 	"github.com/gamidoc/backend/internal/pdf"
@@ -134,6 +135,25 @@ func New(cfg config.Config) (*App, error) {
 	}
 	pdfHandler := pdf.NewHandler(pdfService)
 
+	assistant, err := bootstrap.NewAssistant(cfg)
+	if err != nil {
+		_ = pg.Close()
+		_ = redisClient.Close()
+		return nil, err
+	}
+
+	designHandler := design.NewHandler(
+		design.NewService(),
+		assistant,
+		design.NewReportBuilder(),
+		store,
+		sessionRepository,
+		rediscache.NewDesignRepository(redisClient, cfg.SessionTTL),
+		projectRepository,
+		postgres.NewDesignStateRepository(pg),
+		postgres.NewDesignReportRepository(pg),
+	)
+
 	application := &App{
 		config: cfg,
 		logger: logger,
@@ -152,6 +172,7 @@ func New(cfg config.Config) (*App, error) {
 		AuthHandler:        authHandler.Routes(),
 		ProjectHandler:     projectHandler,
 		SessionHandler:     sessionHandler,
+		DesignHandler:      designHandler,
 		PDFHandler:         pdfHandler,
 		PDFBaseURL:         cfg.ObjectStoragePublicBaseURL,
 		MaxBodyBytes:       cfg.HTTPMaxBodyBytes,

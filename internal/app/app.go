@@ -194,6 +194,7 @@ func New(cfg config.Config) (*App, error) {
 		"object_storage_provider", summary["object_storage_provider"],
 		"mailer_provider", summary["mailer_provider"],
 		"pdf_html_renderer", summary["pdf_html_renderer"],
+		"ai_provider", summary["ai_provider"],
 		"recommendation_rules", summary["recommendation_rules"],
 	)
 

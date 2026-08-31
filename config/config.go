@@ -68,6 +68,7 @@ type Config struct {
 	AIBaseURL  string
 	AIAPIKey   string
 	AIModel    string
+	AITimeout  time.Duration
 }
 
 func Load() Config {
@@ -121,6 +122,7 @@ func Load() Config {
 		AIBaseURL:                      getEnv("AI_BASE_URL", "https://api.openai.com/v1"),
 		AIAPIKey:                       getEnv("AI_API_KEY", ""),
 		AIModel:                        getEnv("AI_MODEL", ""),
+		AITimeout:                      parseDurationWithFallback(getEnv("AI_TIMEOUT", "60s"), 60*time.Second),
 	}
 }
 
@@ -333,6 +335,7 @@ func (c Config) SafeSummary() map[string]any {
 		"object_storage_provider": c.ObjectStorageProviderNormalized(),
 		"mailer_provider":         c.MailerProviderNormalized(),
 		"pdf_html_renderer":       strings.TrimSpace(c.PDFHTMLRendererURL) != "",
+		"ai_provider":             c.AIProviderNormalized(),
 		"recommendation_rules":    c.RecommendationRulesPath,
 	}
 }

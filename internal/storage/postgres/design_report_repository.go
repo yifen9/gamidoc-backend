@@ -18,14 +18,15 @@ func (r *DesignReportRepository) Create(ctx context.Context, report design.Repor
 	row := r.db.sql.QueryRowContext(
 		ctx,
 		`
-		INSERT INTO design_reports (id, project_id, version, url)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO design_reports (id, project_id, version, url, created_at)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, project_id, version, url, created_at
 		`,
 		report.ID,
 		report.ProjectID,
 		report.Version,
 		report.URL,
+		report.CreatedAt,
 	)
 
 	var created design.Report

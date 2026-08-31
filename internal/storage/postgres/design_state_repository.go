@@ -28,7 +28,7 @@ func (r *DesignStateRepository) Get(ctx context.Context, id string) (design.Stat
 		id,
 	)
 
-	var data []byte
+	var data string
 	if err := row.Scan(&data); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return design.NewInitialStatus(), nil
@@ -37,7 +37,7 @@ func (r *DesignStateRepository) Get(ctx context.Context, id string) (design.Stat
 	}
 
 	var status design.Status
-	if err := json.Unmarshal(data, &status); err != nil {
+	if err := json.Unmarshal([]byte(data), &status); err != nil {
 		return design.Status{}, err
 	}
 	if status.Sections == nil {
@@ -61,7 +61,7 @@ func (r *DesignStateRepository) Save(ctx context.Context, id string, status desi
 		ON CONFLICT (project_id) DO UPDATE SET data = $2, updated_at = NOW()
 		`,
 		id,
-		data,
+		string(data),
 	)
 	return err
 }

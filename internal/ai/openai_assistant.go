@@ -82,7 +82,12 @@ func (a *OpenAIAssistant) complete(ctx context.Context, system string, user stri
 		return "", fmt.Errorf("ai provider returned no choices")
 	}
 
-	return strings.TrimSpace(decoded.Choices[0].Message.Content), nil
+	answer := strings.TrimSpace(decoded.Choices[0].Message.Content)
+	if answer == "" {
+		return "", fmt.Errorf("ai provider returned an empty completion")
+	}
+
+	return answer, nil
 }
 
 func (a *OpenAIAssistant) Rewrite(ctx context.Context, text string) (string, error) {
@@ -112,8 +117,13 @@ func (a *OpenAIAssistant) RecommendBranch(ctx context.Context, spark string) (st
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(strings.ToUpper(answer), "B") {
-		return "B", nil
+	words := strings.FieldsFunc(strings.ToUpper(answer), func(r rune) bool {
+		return r < 'A' || r > 'Z'
+	})
+	for _, word := range words {
+		if word == "A" || word == "B" {
+			return word, nil
+		}
 	}
 	return "A", nil
 }

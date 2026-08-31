@@ -2,12 +2,16 @@ package design
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gamidoc/backend/internal/ai"
 	"github.com/gamidoc/backend/internal/storage/objectstore"
 	"github.com/google/uuid"
 )
+
+var ErrAssistant = errors.New("assistant error")
 
 type GeneratedReports struct {
 	Standard Report `json:"standard"`
@@ -34,7 +38,7 @@ func (r *ReportService) Generate(ctx context.Context, kind string, id string, st
 	standardSections := renderStandard(status)
 	enhancedSections, err := r.renderEnhanced(ctx, status)
 	if err != nil {
-		return GeneratedReports{}, err
+		return GeneratedReports{}, fmt.Errorf("%w: %v", ErrAssistant, err)
 	}
 
 	standard, err := r.produce(ctx, kind, id, status, ReportVersionStandard, standardSections)
@@ -57,7 +61,8 @@ func (r *ReportService) produce(ctx context.Context, kind string, id string, sta
 	}
 
 	reportID := uuid.NewString()
-	url, err := r.store.Save(ctx, "design/"+kind+"/"+id+"/"+reportID+".pdf", data)
+	key := "design/" + kind + "/" + id + "/" + reportID + ".pdf"
+	url, err := r.store.Save(ctx, key, data)
 	if err != nil {
 		return Report{}, err
 	}
@@ -71,7 +76,12 @@ func (r *ReportService) produce(ctx context.Context, kind string, id string, sta
 
 	if kind == "projects" {
 		report.ProjectID = id
-		return r.repo.Create(ctx, report)
+		created, err := r.repo.Create(ctx, report)
+		if err != nil {
+			_ = r.store.Delete(ctx, key)
+			return Report{}, err
+		}
+		return created, nil
 	}
 
 	return report, nil
@@ -83,7 +93,11 @@ func (r *ReportService) List(ctx context.Context, projectID string) ([]Report, e
 
 func (r *ReportService) Persist(ctx context.Context, projectID string, reports []Report) error {
 	for _, report := range reports {
+		report.ID = uuid.NewString()
 		report.ProjectID = projectID
+		if report.CreatedAt.IsZero() {
+			report.CreatedAt = time.Now().UTC()
+		}
 		if _, err := r.repo.Create(ctx, report); err != nil {
 			return err
 		}

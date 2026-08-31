@@ -48,21 +48,16 @@ func (r *DesignRepository) Save(ctx context.Context, id string, status design.St
 		return err
 	}
 
-	key := r.key(id)
-	if err := r.client.Raw().SetArgs(ctx, key, payload, goredis.SetArgs{KeepTTL: true}).Err(); err != nil {
-		return err
-	}
-
-	ttl, err := r.client.Raw().TTL(ctx, key).Result()
-	if err != nil {
-		return err
-	}
-	if ttl < 0 {
-		return r.client.Raw().Expire(ctx, key, r.ttl).Err()
-	}
-
-	return nil
+	return saveKeepTTL.Run(ctx, r.client.Raw(), []string{r.key(id)}, payload, r.ttl.Milliseconds()).Err()
 }
+
+var saveKeepTTL = goredis.NewScript(`
+redis.call('SET', KEYS[1], ARGV[1], 'KEEPTTL')
+if redis.call('PTTL', KEYS[1]) < 0 then
+	redis.call('PEXPIRE', KEYS[1], ARGV[2])
+end
+return 1
+`)
 
 func (r *DesignRepository) key(id string) string {
 	return "design:" + id

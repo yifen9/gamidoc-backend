@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/gamidoc/backend/config"
 	"github.com/gamidoc/backend/internal/ai"
@@ -37,7 +38,7 @@ func NewAssistant(cfg config.Config) (ai.Assistant, error) {
 	case "noop":
 		return ai.NewNoopAssistant(), nil
 	case "openai-compatible":
-		return ai.NewOpenAIAssistant(cfg.AIBaseURL, cfg.AIAPIKey, cfg.AIModel, nil), nil
+		return ai.NewOpenAIAssistant(cfg.AIBaseURL, cfg.AIAPIKey, cfg.AIModel, &http.Client{Timeout: cfg.AITimeout}), nil
 	default:
 		return nil, fmt.Errorf("unsupported ai provider: %s", cfg.AIProvider)
 	}

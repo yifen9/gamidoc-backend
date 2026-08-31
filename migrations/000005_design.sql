@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS design_states (
     project_id UUID PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
-    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    data TEXT NOT NULL DEFAULT '{}',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

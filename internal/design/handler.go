@@ -365,7 +365,11 @@ func (h *Handler) generatePDF(w http.ResponseWriter, r *http.Request, o owner) {
 
 	generated, err := h.reports.Generate(r.Context(), o.kind, o.id, status)
 	if err != nil {
-		response.WriteError(w, http.StatusBadGateway, "AI_PROVIDER_ERROR", "AI provider error", nil)
+		if errors.Is(err, ErrAssistant) {
+			response.WriteError(w, http.StatusBadGateway, "AI_PROVIDER_ERROR", "AI provider error", nil)
+			return
+		}
+		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
 		return
 	}
 
@@ -402,15 +406,6 @@ func (h *Handler) importSession(w http.ResponseWriter, r *http.Request, o owner)
 		return
 	}
 
-	if _, err := h.sessions.FindByID(r.Context(), input.SessionID); err != nil {
-		if errors.Is(err, session.ErrSessionNotFound) {
-			response.WriteError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found", nil)
-			return
-		}
-		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
-		return
-	}
-
 	incoming, err := h.sessionStates.Get(r.Context(), input.SessionID)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
@@ -418,6 +413,14 @@ func (h *Handler) importSession(w http.ResponseWriter, r *http.Request, o owner)
 	}
 
 	if !incoming.HasContent() && incoming.Spark == "" {
+		if _, err := h.sessions.FindByID(r.Context(), input.SessionID); err != nil {
+			if errors.Is(err, session.ErrSessionNotFound) {
+				response.WriteError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found", nil)
+				return
+			}
+			response.WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", nil)
+			return
+		}
 		response.WriteError(w, http.StatusConflict, "SESSION_DESIGN_EMPTY", "Session has no design content to import", nil)
 		return
 	}

@@ -65,17 +65,17 @@ Unless stated otherwise, every route in both scopes shares the guard errors belo
 
 | Field | Value |
 | --- | --- |
-| Success | `200` `{ "overallPercent", "sections": [{ "number", "name", "description", "status", "percent" }] }` |
+| Success | `200` `{ "overallPercent", "firstPassDone", "path", "sections": [{ "sectionNumber", "name", "description", "status", "percent" }] }` |
 | Errors | `403 DASHBOARD_LOCKED` |
-| Notes | Section status is `empty`, `in_progress` (visited or partial), or `complete` |
+| Notes | Section status is `not_started` (no content, even if visited or skipped), `in_progress` (has content, not marked complete), or `complete`; the percentages are 0, 50, 100 |
 
 ## `POST .../design/generate-pdf`
 
 | Field | Value |
 | --- | --- |
-| Body | none |
-| Success | `200` `{ "standard": { "id", "version", "url", "createdAt" }, "enhanced": {...} }` |
-| Errors | `403 DASHBOARD_LOCKED`, `502 AI_PROVIDER_ERROR` |
+| Body | optional; when present it must be valid JSON |
+| Success | `200` `{ "standard": { "reportId", "version", "url", "createdAt" }, "enhanced": {...} }` |
+| Errors | `400 INVALID_INPUT`, `403 DASHBOARD_LOCKED`, `502 AI_PROVIDER_ERROR` (AI failures), `500 INTERNAL_SERVER_ERROR` (build, storage, or database failures) |
 | Notes | One trigger produces both report versions: `standard` mirrors the form content in order, `enhanced` is AI-consolidated prose with cross-section deduplication. Project reports are recorded in `design_reports`; session reports are kept in the session design state |
 
 ## `GET .../design/faq/{sectionNumber}`
@@ -115,7 +115,7 @@ Unless stated otherwise, every route in both scopes shares the guard errors belo
 | Body | `{ "sessionId": "..." }` |
 | Success | `200` imported design status object |
 | Errors | `400 INVALID_INPUT`, `404 SESSION_NOT_FOUND`, `409 SESSION_DESIGN_EMPTY`, `409 DESIGN_NOT_EMPTY` |
-| Notes | Project scope only. Refuses to import an empty session state and refuses to overwrite existing project design content. Session-generated reports are migrated into `design_reports` |
+| Notes | Project scope only. Refuses to import an empty session state and refuses to overwrite existing project design content. Session-generated reports are migrated into `design_reports` under fresh ids, keeping their timestamps. The design state lives independently of the session record, so importing still works after the session was converted or deleted, until the state expires with the Redis TTL; `404 SESSION_NOT_FOUND` is returned only when neither the session nor any design state exists |
 
 ## Activity Events
 

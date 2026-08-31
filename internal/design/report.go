@@ -74,6 +74,7 @@ func SectionLines(content json.RawMessage) []string {
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.UseNumber()
 	token, err := decoder.Token()
 	if err != nil {
 		return []string{string(content)}
@@ -86,11 +87,11 @@ func SectionLines(content json.RawMessage) []string {
 			if err != nil {
 				return []string{string(content)}
 			}
-			var value any
-			if err := decoder.Decode(&value); err != nil {
+			value, err := renderValue(decoder, true)
+			if err != nil {
 				return []string{string(content)}
 			}
-			lines = append(lines, fmt.Sprintf("%v: %s", keyToken, flattenValue(value)))
+			lines = append(lines, fmt.Sprintf("%v: %s", keyToken, value))
 		}
 		return lines
 	}
@@ -107,21 +108,53 @@ func SectionPlainText(content json.RawMessage) string {
 	return strings.Join(SectionLines(content), "\n")
 }
 
-func flattenValue(value any) string {
-	switch typed := value.(type) {
-	case []any:
+func renderValue(decoder *json.Decoder, bareList bool) (string, error) {
+	token, err := decoder.Token()
+	if err != nil {
+		return "", err
+	}
+
+	switch typed := token.(type) {
+	case json.Delim:
 		var parts []string
-		for _, item := range typed {
-			parts = append(parts, flattenValue(item))
+		if typed == '{' {
+			for decoder.More() {
+				keyToken, err := decoder.Token()
+				if err != nil {
+					return "", err
+				}
+				value, err := renderValue(decoder, false)
+				if err != nil {
+					return "", err
+				}
+				parts = append(parts, fmt.Sprintf("%v: %s", keyToken, value))
+			}
+			if _, err := decoder.Token(); err != nil {
+				return "", err
+			}
+			return "{" + strings.Join(parts, ", ") + "}", nil
 		}
-		return strings.Join(parts, ", ")
-	case map[string]any:
-		encoded, err := json.Marshal(typed)
-		if err != nil {
-			return fmt.Sprint(typed)
+		for decoder.More() {
+			value, err := renderValue(decoder, false)
+			if err != nil {
+				return "", err
+			}
+			parts = append(parts, value)
 		}
-		return string(encoded)
+		if _, err := decoder.Token(); err != nil {
+			return "", err
+		}
+		if bareList {
+			return strings.Join(parts, ", "), nil
+		}
+		return "[" + strings.Join(parts, ", ") + "]", nil
+	case json.Number:
+		return typed.String(), nil
+	case string:
+		return typed, nil
+	case nil:
+		return "", nil
 	default:
-		return fmt.Sprint(typed)
+		return fmt.Sprint(typed), nil
 	}
 }
